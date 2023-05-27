@@ -3,7 +3,7 @@ import type { NextPage } from "next";
 import { Address } from "~~/components/scaffold-eth";
 import { useAccount } from 'wagmi';
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
-import React, { useState } from "react";
+import React, {useCallback, useState} from "react";
 import { ContractUI } from "~~/components/scaffold-eth";
 import { ContractName } from "~~/utils/scaffold-eth/contract";
 import { getContractNames } from "~~/utils/scaffold-eth/contractNames";
@@ -13,31 +13,70 @@ import {Status, Wrapper} from "@googlemaps/react-wrapper";
 import {render} from "preact";
 import {isLatLngLiteral} from "@googlemaps/typescript-guards";
 import {createCustomEqual} from "fast-equals";
+import TextSearchRequest = google.maps.places.TextSearchRequest;
+import {CustomRestaurantMarker} from "~~/pages/maps_marker";
+import PlaceResult = google.maps.places.PlaceResult;
+
+
 
 const Home: NextPage = () => {
 
   //Google maps API
   const [click, setClick] = React.useState<google.maps.LatLng>();
-  const [zoom, setZoom] = React.useState(13); // initial zoom
+  const [zoom, setZoom] = React.useState(15); // initial zoom
+  const [selectedRestaurant, setSelectedRestaurant] = useState("");
   const [center, setCenter] = React.useState<google.maps.LatLngLiteral>({
-    lat: 16.51293448631057,
-    lng: 80.68033679220048,
-  });  //Vijayawada
+    lat: 48.139266234120626,
+    lng: 11.566880680228167,
+  });
+  let markerOnClick: google.maps.Marker ;
+  interface RestaurantInfo {
+    id: string,
+    latLng?: google.maps.LatLng,
+    name?: string,
+    stake?: BigNumber
+  }
+  let [restaurants, setRestaurants] = React.useState<RestaurantInfo[]>([]);
 
   const render = (status: Status) => {
     return <h1>{status}</h1>;
   };
   const onClick = (e: google.maps.MapMouseEvent, map: google.maps.Map) => {
     setClick(e.latLng!);
-    // if(markerOnClick != undefined) {
-    //   markerOnClick.setMap(null)
-    // }
-    //
-    // markerOnClick = new google.maps.Marker({
-    //   position: e.latLng!,
-    //   label: "Search point",
-    //   map: map,
-    // });
+    if(markerOnClick != undefined) {
+      markerOnClick.setMap(null)
+    }
+
+    markerOnClick = new google.maps.Marker({
+      position: e.latLng!,
+      label: "Search point",
+      map: map,
+    });
+    //Search for restaurants in 500m radius arond the click position
+    var request: TextSearchRequest = {
+      location: e.latLng!,
+      radius: 500,
+      query: 'restaurant'
+    };
+    console.log("Searching all restaurants in 500m radius of " + e.latLng!.toString());
+    let service = new google.maps.places.PlacesService(map);
+    service.textSearch(request, (results: PlaceResult[]|null, status: any) => {
+      if (status == google.maps.places.PlacesServiceStatus.OK && results != null) {
+        console.log(results);
+        setRestaurants([])
+        results.forEach((place) => {
+          setRestaurants(restaurants => [...restaurants, {
+                id: place.place_id!,
+                latLng: place.geometry!.location,
+                name: place.name,
+                stake: BigNumber.from(0)
+              }]
+          )
+          console.log("Added restaurant " + place.name + " to list");
+        })
+      }
+    });
+
   };
 
   const onIdle = (m: google.maps.Map) => {
@@ -59,25 +98,17 @@ const Home: NextPage = () => {
   const contractNames = getContractNames();
   const [selectedContract, setSelectedContract] = useState<ContractName>(contractNames[0]);
 
-  const [restaurants, setRestaurants] = useState([
-    { id: 1, name: 'Restaurant 1', stakes: 212, position: { top: '10%', left: '20%' } },
-    { id: 2, name: 'Restaurant 2', stakes: 542, position: { top: '20%', left: '70%' } },
-    { id: 3, name: 'Restaurant 3', stakes: 144, position: { top: '50%', left: '30%' } },
-    { id: 4, name: 'Restaurant 4', stakes: 753, position: { top: '80%', left: '60%' } },
-  ]);
-
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [newReview, setNewReview] = useState("");
   const [showInfo, setShowInfo] = useState(true); // state to show or hide info box
   const [showReview, setShowReview] = useState(false); // state to show or hide the longer review
   const [longerReview, setLongerReview] = useState(""); // state to hold the longer review text
 
+
   const stakeRestaurant = async () => {
     if (selectedRestaurant === null) return;
+    //TODO: Calls contract for staking on this restaurant
     await doStake();
-    setRestaurants(restaurants.map(restaurant =>
-      restaurant.id === selectedRestaurant ? { ...restaurant, stakes: restaurant.stakes + 1 } : restaurant
-    ));
+    //TODO: Updates the stakes of the restaurant in the local as well
   }
 
   const sendReview = () => {
@@ -90,8 +121,6 @@ const Home: NextPage = () => {
     setShowReview(!showReview);
   }
 
-  // @ts-ignore
-  // @ts-ignore
   return (
     <>
       <Head>
@@ -120,7 +149,7 @@ const Home: NextPage = () => {
 
           {selectedRestaurant && (
             <div className="flex flex-col mt-6 px-7 py-8 bg-base-200 opacity-80 rounded-2xl shadow-lg">
-              <span className="text-2xl sm:text-4xl text-white">Review for {restaurants.find(r => r.id === selectedRestaurant).name}</span>
+              <span className="text-2xl sm:text-4xl text-white">Review for {restaurants.find(r => r.id === selectedRestaurant)!.name}</span>
 
 
               <button className="btn btn-primary mt-5" style={{ width: '150px' }} onClick={stakeRestaurant}>
@@ -152,7 +181,7 @@ const Home: NextPage = () => {
               </button>
               {showReview && (
                 <p className="mt-4 text-lg sm:text-2xl">
-                  Excellent service, great food, loved the ambiance! This is a sample review text for the {restaurants.find(r => r.id === selectedRestaurant).name}.
+                  Excellent service, great food, loved the ambiance! This is a sample review text for the {restaurants.find(r => r.id === selectedRestaurant)!.name}.
                   It provides detailed information about the restaurant and its offerings.
                 </p>
               )}
@@ -161,7 +190,7 @@ const Home: NextPage = () => {
         </div>
 
         <div className="w-1/2 relative" style={{backgroundSize: 'cover', height: '950px' }}>
-          <Wrapper apiKey={""} render={render}>
+          <Wrapper apiKey={"AIzaSyDGxUUfngdJ62DqMoARmUlmXUI_-zMyBQQ"} render={render} libraries= {['places']}>
             <Map
                 center={center}
                 onClick={onClick}
@@ -169,18 +198,15 @@ const Home: NextPage = () => {
                 zoom={zoom}
                 style={{ flexGrow: "1", height: "100%" }}
             >
+              {restaurants.map((restaurant,  i) => (
+                  <CustomRestaurantMarker key = {i} position = {restaurant.latLng} name = {restaurant.name} stake = {restaurant.stake} id={restaurant.id}
+                  callback={(id) => {
+                    console.log("id:", id)
+                    setSelectedRestaurant(id)
+                  }}/>
+              ))}
             </Map>
           </Wrapper>
-          {restaurants.map((restaurant) => (
-            <button
-              className={`absolute btn btn-${selectedRestaurant === restaurant.id ? 'success' : 'secondary'}`}
-              style={{ top: restaurant.position.top, left: restaurant.position.left }}
-              onClick={() => setSelectedRestaurant(restaurant.id)}
-              key={restaurant.id}
-            >
-              {restaurant.name} (Stakes: {restaurant.stakes})
-            </button>
-          ))}
         </div>
       </div>
     </>
@@ -190,6 +216,7 @@ const Home: NextPage = () => {
 export default Home;
 
 
+<script async src="https://maps.googleapis.com/maps/api/js?key="></script>
 
 
 
@@ -274,6 +301,7 @@ const deepCompareEqualsForMaps = createCustomEqual(
       // TODO extend to other types
 
       // use fast-equals for other objects
+      // @ts-ignore
       return deepEqual(a, b);
     }
 );
