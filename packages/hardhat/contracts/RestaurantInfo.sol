@@ -71,8 +71,11 @@ contract RestaurantInfo {
     }
 
     //Find restaurants by id and add stake/ unstake functions
-    function stakeRestaurant(uint _restaurantId, uint _stakedFINDRTokens) public checkAllowance(_stakedFINDRTokens) {
-        require(restaurants[_restaurantId].restaurantId != 0, "Restaurant does not exist");
+    function stakeRestaurant(uint _restaurantId, uint _stakedFINDRTokens) public payable checkAllowance(_stakedFINDRTokens) {
+        //First staker of a restaurant will create the restaurant on the blockchain
+        if (restaurants[_restaurantId].restaurantId == 0) {
+            addRestaurant(_restaurantId, 0, "");
+        }
         FINDRTokenAddress.transferFrom(msg.sender, address(this), _stakedFINDRTokens);
         stakeBalanceInfo[_restaurantId][msg.sender] += _stakedFINDRTokens;
         restaurants[_restaurantId].stakedFINDRTokens += _stakedFINDRTokens;
@@ -99,7 +102,7 @@ contract RestaurantInfo {
 
     // Modifier to check token allowance of a user to this contract
     modifier checkAllowance(uint amount) {
-        require(FINDRTokenAddress.allowance(msg.sender, address(this)) >= amount, "Token allowance not provided");
+        require(FINDRTokenAddress.allowance(msg.sender, address(this)) >= amount, "Token allowance not sufficient");
         _;
     }
 }

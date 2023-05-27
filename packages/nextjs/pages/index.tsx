@@ -2,13 +2,13 @@ import Head from "next/head";
 import type { NextPage } from "next";
 import { Address } from "~~/components/scaffold-eth";
 import { useAccount } from 'wagmi';
-import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import {useDeployedContractInfo, useScaffoldContract, useScaffoldContractWrite} from "~~/hooks/scaffold-eth";
 import React, {useCallback, useState} from "react";
 import { ContractUI } from "~~/components/scaffold-eth";
 import { ContractName } from "~~/utils/scaffold-eth/contract";
 import { getContractNames } from "~~/utils/scaffold-eth/contractNames";
 import { ContractData } from "./ContractData";
-import {BigNumber} from "ethers";
+import {BigNumber, ethers} from "ethers";
 import {Status, Wrapper} from "@googlemaps/react-wrapper";
 import {render} from "preact";
 import {isLatLngLiteral} from "@googlemaps/typescript-guards";
@@ -16,7 +16,7 @@ import {createCustomEqual} from "fast-equals";
 import TextSearchRequest = google.maps.places.TextSearchRequest;
 import {CustomRestaurantMarker} from "~~/pages/maps_marker";
 import PlaceResult = google.maps.places.PlaceResult;
-
+const { createHash } = require('crypto');
 
 
 const Home: NextPage = () => {
@@ -58,7 +58,7 @@ const Home: NextPage = () => {
       radius: 500,
       query: 'restaurant'
     };
-    console.log("Searching all restaurants in 500m radius of " + e.latLng!.toString());
+    console.log("Searching all restaurants in a radius of " + e.latLng!.toString());
     let service = new google.maps.places.PlacesService(map);
     service.textSearch(request, (results: PlaceResult[]|null, status: any) => {
       if (status == google.maps.places.PlacesServiceStatus.OK && results != null) {
@@ -72,7 +72,7 @@ const Home: NextPage = () => {
                 stake: BigNumber.from(0)
               }]
           )
-          console.log("Added restaurant " + place.name + " to list");
+          console.log("Added restaurant " + place.name + " to list with id " + place.place_id);
         })
       }
     });
@@ -85,34 +85,65 @@ const Home: NextPage = () => {
   };
 
 
-
   //Contract interaction code
   const { address } = useAccount();
-  const { writeAsync: doStake } = useScaffoldContractWrite({
-    contractName: "RestaurantInfo",
-    functionName: "stakeRestaurant",
-    args: [BigNumber.from(1), BigNumber.from(100)],
-    value: "0",
-  });
-
-  const contractNames = getContractNames();
-  const [selectedContract, setSelectedContract] = useState<ContractName>(contractNames[0]);
-
   const [newReview, setNewReview] = useState("");
   const [showInfo, setShowInfo] = useState(true); // state to show or hide info box
   const [showReview, setShowReview] = useState(false); // state to show or hide the longer review
   const [longerReview, setLongerReview] = useState(""); // state to hold the longer review text
 
 
-  const stakeRestaurant = async () => {
-    if (selectedRestaurant === null) return;
-    //TODO: Calls contract for staking on this restaurant
-    await doStake();
-    //TODO: Updates the stakes of the restaurant in the local as well
+  const coreContractData = useDeployedContractInfo(
+    "RestaurantInfo"
+  )
+
+  //TODO: Felipe. Add a popup to ask how much to stake when the user clicks on stake
+  //Give permission to the contract to get allowance from the user
+  const { writeAsync: getTokenApproval } = useScaffoldContractWrite({
+    contractName: "FINDR",
+    functionName: "approve",
+    args: [coreContractData.data?.address, BigNumber.from(100)],
+    value: "0",
+  });
+
+  //State the allowance on the restaurant
+  const { writeAsync: doStakeOnContract } = useScaffoldContractWrite({
+    contractName: "RestaurantInfo",
+    functionName: "stakeRestaurant",
+    args: [BigNumber.from(1), BigNumber.from(1)],
+    value: "0",
+  });
+
+  const sanitizeHash = (hash: string) => {
+    return ethers.utils.hexZeroPad(hash, 32)
   }
 
-  const sendReview = () => {
-    // Here you can handle the review submission
+  //State the allowance on the restaurant
+  const { writeAsync: sendReviewHash } = useScaffoldContractWrite({
+    contractName: "RestaurantInfo",
+    functionName: "addReview",
+    args: [BigNumber.from(1), `${sanitizeHash('0x'+createHash('md5').update(newReview).digest('hex'))}`],
+    value: "0",
+  });
+
+  const contractNames = getContractNames();
+  const [selectedContract, setSelectedContract] = useState<ContractName>(contractNames[0]);
+
+
+  const stakeRestaurant = async () => {
+    if (selectedRestaurant === null) return;
+    await doStakeOnContract();
+  }
+
+  const getAllowanceForStaking = async () => {
+    if (selectedRestaurant === null) return;
+    await getTokenApproval();
+  }
+
+  const sendReview = async () => {
+    // Here you can handle the review submission.
+    //TODO: Integrate with backend for storage
+    await sendReviewHash();
     console.log(newReview);
     setNewReview("");
   }
@@ -155,7 +186,9 @@ const Home: NextPage = () => {
               <button className="btn btn-primary mt-5" style={{ width: '150px' }} onClick={stakeRestaurant}>
                 Stake Restaurant
               </button>
-
+              <button className="btn btn-primary mt-5" style={{ width: '150px' }} onClick={getAllowanceForStaking}>
+                Give allowance
+              </button>
               <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-5">
                 <input
                   type="text"
@@ -249,7 +282,14 @@ const Map: React.FC<MapProps> = ({
   }, [ref, map]);
 
 
-
+  options.clickableIcons = false;
+  options.styles = [{
+    featureType: "poi",
+    //elementType: "labels",
+    stylers: [{
+      visibility: "off"
+    }]
+  }];
   // because React does not do deep comparisons, a custom hook is used
   // see discussion in https://github.com/googlemaps/js-samples/issues/946
   useDeepCompareEffectForMaps(() => {
