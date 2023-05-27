@@ -52,8 +52,8 @@ export const ContractData = () => {
 
   console.log("Events:", isLoadingEvents, errorReadingEvents, myGreetingChangeEvents);
 
-  const { data: yourContract } = useScaffoldContract({ contractName: "YourContract" });
-  console.log("yourContract: ", yourContract);
+  const { data: restaurantInfo } = useScaffoldContract({ contractName: "RestaurantInfo" });
+  console.log("yourContract: ", restaurantInfo);
 
   const { showAnimation } = useAnimationConfig(totalCounter);
 

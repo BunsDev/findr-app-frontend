@@ -4,14 +4,14 @@ const contracts = {
       name: "localhost",
       chainId: "31337",
       contracts: {
-        YourContract: {
+        RestaurantInfo: {
           address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
           abi: [
             {
               inputs: [
                 {
                   internalType: "address",
-                  name: "_owner",
+                  name: "_FINDRAddress",
                   type: "address",
                 },
               ],
@@ -22,52 +22,71 @@ const contracts = {
               anonymous: false,
               inputs: [
                 {
-                  indexed: true,
-                  internalType: "address",
-                  name: "greetingSetter",
-                  type: "address",
+                  indexed: false,
+                  internalType: "uint256",
+                  name: "restaurantId",
+                  type: "uint256",
                 },
                 {
                   indexed: false,
-                  internalType: "string",
-                  name: "newGreeting",
-                  type: "string",
+                  internalType: "bytes32",
+                  name: "imageHash",
+                  type: "bytes32",
                 },
+              ],
+              name: "ImageAdded",
+              type: "event",
+            },
+            {
+              anonymous: false,
+              inputs: [
                 {
                   indexed: false,
-                  internalType: "bool",
-                  name: "premium",
-                  type: "bool",
+                  internalType: "uint256",
+                  name: "restaurantId",
+                  type: "uint256",
                 },
                 {
                   indexed: false,
                   internalType: "uint256",
-                  name: "value",
+                  name: "stakedFINDRTokens",
                   type: "uint256",
                 },
+                {
+                  indexed: false,
+                  internalType: "string",
+                  name: "details",
+                  type: "string",
+                },
               ],
-              name: "GreetingChange",
+              name: "RestaurantAdded",
+              type: "event",
+            },
+            {
+              anonymous: false,
+              inputs: [
+                {
+                  indexed: false,
+                  internalType: "uint256",
+                  name: "restaurantId",
+                  type: "uint256",
+                },
+                {
+                  indexed: false,
+                  internalType: "bytes32",
+                  name: "reviewHash",
+                  type: "bytes32",
+                },
+              ],
+              name: "ReviewAdded",
               type: "event",
             },
             {
               inputs: [],
-              name: "greeting",
+              name: "FINDRTokenAddress",
               outputs: [
                 {
-                  internalType: "string",
-                  name: "",
-                  type: "string",
-                },
-              ],
-              stateMutability: "view",
-              type: "function",
-            },
-            {
-              inputs: [],
-              name: "owner",
-              outputs: [
-                {
-                  internalType: "address",
+                  internalType: "contract IERC20",
                   name: "",
                   type: "address",
                 },
@@ -76,73 +95,293 @@ const contracts = {
               type: "function",
             },
             {
-              inputs: [],
-              name: "premium",
-              outputs: [
-                {
-                  internalType: "bool",
-                  name: "",
-                  type: "bool",
-                },
-              ],
-              stateMutability: "view",
-              type: "function",
-            },
-            {
               inputs: [
                 {
-                  internalType: "string",
-                  name: "_newGreeting",
-                  type: "string",
-                },
-              ],
-              name: "setGreeting",
-              outputs: [],
-              stateMutability: "payable",
-              type: "function",
-            },
-            {
-              inputs: [],
-              name: "totalCounter",
-              outputs: [
-                {
                   internalType: "uint256",
-                  name: "",
+                  name: "_restaurantId",
                   type: "uint256",
                 },
-              ],
-              stateMutability: "view",
-              type: "function",
-            },
-            {
-              inputs: [
                 {
-                  internalType: "address",
-                  name: "",
-                  type: "address",
+                  internalType: "bytes32",
+                  name: "_imageHash",
+                  type: "bytes32",
                 },
               ],
-              name: "userGreetingCounter",
-              outputs: [
-                {
-                  internalType: "uint256",
-                  name: "",
-                  type: "uint256",
-                },
-              ],
-              stateMutability: "view",
-              type: "function",
-            },
-            {
-              inputs: [],
-              name: "withdraw",
+              name: "addImage",
               outputs: [],
               stateMutability: "nonpayable",
               type: "function",
             },
             {
-              stateMutability: "payable",
-              type: "receive",
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_restaurantId",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "_stakedFINDRTokens",
+                  type: "uint256",
+                },
+                {
+                  internalType: "string",
+                  name: "_details",
+                  type: "string",
+                },
+              ],
+              name: "addRestaurant",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_restaurantId",
+                  type: "uint256",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "_reviewHash",
+                  type: "bytes32",
+                },
+              ],
+              name: "addReview",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_restaurantId",
+                  type: "uint256",
+                },
+              ],
+              name: "claimReward",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_restaurantId",
+                  type: "uint256",
+                },
+              ],
+              name: "getRestaurantDetails",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+                {
+                  internalType: "string",
+                  name: "",
+                  type: "string",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_restaurantId",
+                  type: "uint256",
+                },
+              ],
+              name: "getRestaurantImageHashes",
+              outputs: [
+                {
+                  internalType: "bytes32[]",
+                  name: "",
+                  type: "bytes32[]",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_restaurantId",
+                  type: "uint256",
+                },
+              ],
+              name: "getRestaurantReviewHashes",
+              outputs: [
+                {
+                  internalType: "bytes32[]",
+                  name: "",
+                  type: "bytes32[]",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "bytes32",
+                  name: "",
+                  type: "bytes32",
+                },
+              ],
+              name: "imageHashToOwner",
+              outputs: [
+                {
+                  internalType: "address",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [],
+              name: "restaurantCount",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+              ],
+              name: "restaurants",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "restaurantId",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "stakedFINDRTokens",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "totalStakeRewards",
+                  type: "uint256",
+                },
+                {
+                  internalType: "string",
+                  name: "details",
+                  type: "string",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "bytes32",
+                  name: "",
+                  type: "bytes32",
+                },
+              ],
+              name: "reviewHashToOwner",
+              outputs: [
+                {
+                  internalType: "address",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+                {
+                  internalType: "address",
+                  name: "",
+                  type: "address",
+                },
+              ],
+              name: "stakeBalanceInfo",
+              outputs: [
+                {
+                  internalType: "uint256",
+                  name: "",
+                  type: "uint256",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_restaurantId",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "_stakedFINDRTokens",
+                  type: "uint256",
+                },
+              ],
+              name: "stakeRestaurant",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
+            },
+            {
+              inputs: [
+                {
+                  internalType: "uint256",
+                  name: "_restaurantId",
+                  type: "uint256",
+                },
+                {
+                  internalType: "uint256",
+                  name: "_amountToUnstake",
+                  type: "uint256",
+                },
+              ],
+              name: "unstakeRestaurant",
+              outputs: [],
+              stateMutability: "nonpayable",
+              type: "function",
             },
           ],
         },
