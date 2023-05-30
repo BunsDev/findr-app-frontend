@@ -1131,19 +1131,6 @@ const contracts = {
               inputs: [
                 {
                   internalType: "uint256",
-                  name: "amount",
-                  type: "uint256",
-                },
-              ],
-              name: "approveContractToGetTokens",
-              outputs: [],
-              stateMutability: "nonpayable",
-              type: "function",
-            },
-            {
-              inputs: [
-                {
-                  internalType: "uint256",
                   name: "_restaurantId",
                   type: "uint256",
                 },

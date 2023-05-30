@@ -222,8 +222,8 @@ const Home: NextPage = () => {
           )}
         </div>
 
-        <div className="w-1/2 relative" style={{backgroundSize: 'cover', height: '950px' }}>
-          <Wrapper apiKey={"AIzaSyDGxUUfngdJ62DqMoARmUlmXUI_-zMyBQQ"} render={render} libraries= {['places']}>
+        <div className="w-1/2 relative" style={{ height: '950px' }}>
+          <Wrapper apiKey={"AIzaSyAsj2bxWlpxNEuOOdid3_8uKyveChH4ZQU"} render={render} libraries= {['places']}>
             <Map
                 center={center}
                 onClick={onClick}

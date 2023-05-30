@@ -37,12 +37,22 @@
     "lint-staged": "^13.0.3"
   },
   "dependencies": {
+    "@chainlink/contracts": "^0.6.1",
+    "@chainlink/env-enc": "^1.0.5",
     "@googlemaps/react-wrapper": "^1.1.35",
     "@googlemaps/typescript-guards": "^2.0.3",
+    "@openzeppelin/contracts": "^4.9.0",
+    "@openzeppelin/contracts-upgradeable": "^4.9.0",
+    "axios": "^1.4.0",
+    "dotenv": "^16.1.0",
+    "eth-crypto": "^2.6.0",
     "fast-equals": "^4.0.3",
+    "is-http-url": "^2.0.0",
     "leaflet": "^1.9.4",
+    "prompt-sync": "^4.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-leaflet": "^4.2.1"
+    "react-leaflet": "^4.2.1",
+    "vm2": "^3.9.19"
   }
 }
