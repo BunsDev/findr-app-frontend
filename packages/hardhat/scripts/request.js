@@ -4,9 +4,10 @@ const fs = require("fs").promises;
 
 async function main() {
   // Provider config currently set for Polygon Mumbai
+  const quickNodeApiKey = process.env.QUICKNODE_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
 
   const provider = new ethers.providers.JsonRpcProvider(
-      "https://alien-wild-friday.ethereum-sepolia.discover.quiknode.pro/" + process.env.QUICKNODE_API_KEY
+      `https://alien-wild-friday.ethereum-sepolia.discover.quiknode.pro/${quickNodeApiKey}`
   );
 
   // Get private wallet key from the .env file
@@ -28,32 +29,25 @@ async function main() {
   );
 
   // Transaction config
-  const gasLimit = 500000; // Transaction gas limit
+  const gasLimit = 250000; // Transaction gas limit
   const verificationBlocks = 2; // Number of blocks to wait for transaction
 
   // Chainlink Functions request config
   // Chainlink Functions subscription ID
-  const subscriptionId = "406";
+  const subscriptionId = "410";
   // Gas limit for the Chainlink Functions request
   const requestGas = 5500000;
 
   // // Default example
-  // const source = await fs.readFile("./scripts/OpenAI-request.js", "utf8");
-  // const args = ["Some review of a specific restaurant"];
-
-  //Tutorial 6
-  // const source = await fs.readFile(
-  //   "./scripts/OpenAI-request.js",
-  //   "utf8"
-  // );
-  // const args = ["Some review text of a restaurant I recently visited"];
-  // const secrets = { apiKey: process.env.OPENAI_API_KEY};
+  // const source = await fs.readFile("./scripts/Functions-request-source.js", "utf8");
+  // const args = ["ETH", "USD"];
 
   const source = await fs.readFile(
-    "./scripts/Functions-request-source.js",
+    "./scripts/OpenAI-request.js",
     "utf8"
   );
-  const args = ["ETH", "USD"];
+  const args = ["Some review about a restaurant"]
+  const secrets = { apiKey: process.env.OPENAI_API_KEY };
 
   // Tutorial 7
   // const source = await fs.readFile(
