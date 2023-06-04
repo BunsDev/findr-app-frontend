@@ -7,15 +7,43 @@ import "hardhat-deploy";
 // If not set, it uses ours Alchemy's default API key.
 // You can get your own at https://dashboard.alchemyapi.io
 const providerApiKey = process.env.ALCHEMY_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
+const quickNodeApiKey = process.env.QUICKNODE_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
+
 // If not set, it uses the hardhat account 0 private key.
 const deployerPrivateKey =
   process.env.DEPLOYER_PRIVATE_KEY ?? "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 // If not set, it uses ours Etherscan default API key.
 const etherscanApiKey = process.env.ETHERSCAN_API_KEY || "DNXJA8RX2Q3VZ4URQIWP7Z68CJXQZSC6AW";
 
+const SOLC_SETTINGS = {
+  optimizer: {
+    enabled: true,
+    runs: 1_000,
+  },
+}
+
 const config: HardhatUserConfig = {
-  solidity: "0.8.17",
-  defaultNetwork: "localhost",
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.17",
+        settings: SOLC_SETTINGS,
+      },
+      {
+        version: "0.7.0",
+        settings: SOLC_SETTINGS,
+      },
+      {
+        version: "0.6.6",
+        settings: SOLC_SETTINGS,
+      },
+      {
+        version: "0.4.24",
+        settings: SOLC_SETTINGS,
+      },
+    ],
+  },
+  defaultNetwork: "sepolia",
   namedAccounts: {
     deployer: {
       // By default, it will take the first Hardhat account as the deployer
@@ -36,7 +64,7 @@ const config: HardhatUserConfig = {
       accounts: [deployerPrivateKey],
     },
     sepolia: {
-      url: `https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`,
+      url: `https://alien-wild-friday.ethereum-sepolia.discover.quiknode.pro/${quickNodeApiKey}`,
       accounts: [deployerPrivateKey],
     },
     goerli: {
@@ -68,10 +96,8 @@ const config: HardhatUserConfig = {
       accounts: [deployerPrivateKey],
     },
   },
-  verify: {
-    etherscan: {
-      apiKey: `${etherscanApiKey}`,
-    },
+  etherscan: {
+    apiKey: `${etherscanApiKey}`,
   },
 };
 

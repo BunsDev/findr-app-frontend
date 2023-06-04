@@ -1,51 +1,79 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.8/dev/functions/FunctionsClient.sol";
+import "@chainlink/contracts/src/v0.8/dev/functions/Functions.sol";
+import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+
+/**
+ * @title Functions Consumer contract
+ * @notice This contract is a demonstration of using Functions.
+ */
+contract AIResultConsumer is FunctionsClient, ConfirmedOwner {
+    using Functions for Functions.Request;
+
+    bytes32 public latestRequestId;
+    bytes public latestResponse;
+    bytes public latestError;
+
+    event OCRResponse(bytes32 indexed requestId, bytes result, bytes err);
 
 
-contract AIResultConsumer is ChainlinkClient{
-    using Chainlink for Chainlink.Request;
+    constructor(address oracle) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {}
 
-    address private oracle;
-    bytes32 private jobId;
-    uint256 private fee;
+    /**
+   * @notice Send a simple request
+   *
+   * @param source JavaScript source code
+   * @param secrets Encrypted secrets payload
+   * @param args List of arguments accessible from within the source code
+   * @param subscriptionId Funtions billing subscription ID
+   * @param gasLimit Maximum amount of gas used to call the client contract's `handleOracleFulfillment` function
+   * @return Functions request ID
+    */
+    function executeRequest(
+        string calldata source,
+        bytes calldata secrets,
+        string[] calldata args,
+        uint64 subscriptionId,
+        uint32 gasLimit
+    ) public onlyOwner returns (bytes32) {
+        Functions.Request memory req;
+        req.initializeRequest(Functions.Location.Inline, Functions.CodeLanguage.JavaScript, source);
+        if (secrets.length > 0) {
+            req.addRemoteSecrets(secrets);
+        }
+        if (args.length > 0) req.addArgs(args);
 
-    int256 public isTextLikelyGeneratedByAI; //TODO: Store as a number from 0 to 100 and process to probalility in UI
-
-    constructor(address _oracle, bytes32 _jobId, uint256 _fee) public {
-        setPublicChainlinkToken();
-        oracle = _oracle;
-        jobId = _jobId;
-        fee = _fee;
+        bytes32 assignedReqID = sendRequest(req, subscriptionId, gasLimit);
+        latestRequestId = assignedReqID;
+        return assignedReqID;
     }
 
-    // Function to request the nested isTextLikelyGeneratedByAI
-    function requestNestedisTextLikelyGeneratedByAI(string memory s) external returns (bytes32 requestId) {
-        Chainlink.Request memory req = buildChainlinkRequest(jobId, address(this), this.setisTextLikelyGeneratedByAI.selector);
-        req.add("post", "https://api.openai.com/v1/completions");
-        req.add("header", "Content-Type: application/json");
-        req.add("body", buildJsonRequestBody(s));
-        req.add("path", "choices.logprobs.top_logprobs.!"); // Access the nested isTextLikelyGeneratedByAI value
-
-        // Use the "multiply" adapter to shift the decimal to the left by a fixed number of places (e.g., 10^18)
-        req.addInt("times", 10**18);
-//        req.addInt("pow", exponent);
-//        req.addInt("div", e**(18 * exponent));
-
-        return sendChainlinkRequestTo(oracle, req, fee);
+    /**
+     * @notice Callback that is invoked once the DON has resolved the request or hit an error
+   *
+   * @param requestId The request ID, returned by sendRequest()
+   * @param response Aggregated response from the user code
+   * @param err Aggregated error from the user code or from the execution pipeline
+   * Either response or error parameter will be set, but never both
+   */
+    function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
+        latestResponse = response;
+        latestError = err;
+        emit OCRResponse(requestId, response, err);
     }
 
-    // Function to build the JSON object as a string
-    function buildJsonRequestBody(string memory text) public pure returns (string memory) {
-        string memory value1 = unicode'{"prompt":"';
-        string memory value3 = unicode' ».\\n<|disc_score|>",\"max_tokens\":1,\"temperature\":1,\"top_p\":1,\"n\":1,\"logprobs\":5,\"stop\":\"\\n\",\"stream\":false,\"model\":\"model-detect-v2\"}';
-        return string(abi.encodePacked(value1, text, value3));
+    /**
+     * @notice Allows the Functions oracle address to be updated
+   *
+   * @param oracle New oracle address
+   */
+    function updateOracleAddress(address oracle) public onlyOwner {
+        setOracle(oracle);
     }
 
-
-    // Callback function to handle the fulfillment for isTextLikelyGeneratedByAI
-    function setisTextLikelyGeneratedByAI(bytes32 _requestId, int256 _value) external recordChainlinkFulfillment(_requestId) {
-        isTextLikelyGeneratedByAI = _value;
+    function addSimulatedRequestId(address oracleAddress, bytes32 requestId) public onlyOwner {
+        addExternalRequest(oracleAddress, requestId);
     }
 }
