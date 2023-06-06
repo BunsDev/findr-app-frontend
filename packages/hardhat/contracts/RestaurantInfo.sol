@@ -2,9 +2,12 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./AIFunctionsClient.sol";
 
 contract RestaurantInfo {
+    using SafeMath for uint;
+
     struct Restaurant {
         uint restaurantId;
         uint stakedFINDRTokens;
@@ -116,14 +119,29 @@ contract RestaurantInfo {
         FINDRTokenAddress.transfer(msg.sender, _amountToUnstake);
     }
 
+    /// @dev User can claim rewards for a restaurant if they have staked tokens for it
     function claimReward(uint _restaurantId) public {
         require(restaurants[_restaurantId].restaurantId != 0, "Restaurant does not exist");
         require(stakeBalanceInfo[_restaurantId][msg.sender] > 0, "No tokens staked");
-        //TODO: Perform Math operations safely over percentages and rewards
-        uint percentOfTotalStake = stakeBalanceInfo[_restaurantId][msg.sender] / restaurants[_restaurantId].stakedFINDRTokens;
-        uint reward = restaurants[_restaurantId].totalStakeRewards * percentOfTotalStake;
+
+        uint totalStake = restaurants[_restaurantId].stakedFINDRTokens;
+        uint userStake = stakeBalanceInfo[_restaurantId][msg.sender];
+
+        require(totalStake >= userStake, "Error: user stake exceeds total stake");
+
+        // Calculate the user's percentage of the total stake
+        uint percentOfTotalStake = userStake.mul(1e18).div(totalStake); // 1e18 is used to add precision
+
+        uint totalReward = restaurants[_restaurantId].totalStakeRewards;
+
+        // Calculate the user's reward
+        uint reward = totalReward.mul(percentOfTotalStake).div(1e18); // Divide by 1e18 to remove the added precision
+
+        // Transfer the reward
         FINDRTokenAddress.transfer(msg.sender, reward);
-        restaurants[_restaurantId].totalStakeRewards -= reward;
+
+        // Subtract the reward from the total rewards
+        restaurants[_restaurantId].totalStakeRewards = totalReward.sub(reward);
     }
 
     // Modifier to check token allowance of a user to this contract
