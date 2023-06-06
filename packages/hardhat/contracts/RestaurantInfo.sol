@@ -17,7 +17,7 @@ contract RestaurantInfo {
     mapping(bytes32 => address) public reviewHashToOwner;
     mapping(bytes32 => address) public imageHashToOwner;
 
-    //Is this necessary?
+    //For a given restauarantId, store the staked FINDR tokens for each user
     mapping(uint => mapping (address => uint)) public stakeBalanceInfo;
 
     uint public restaurantCount;
