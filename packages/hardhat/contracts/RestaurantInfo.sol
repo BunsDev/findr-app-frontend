@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./AIFunctionsClient.sol";
+import "./FINDR.sol";
 
 contract RestaurantInfo {
     using SafeMath for uint;
@@ -11,7 +12,7 @@ contract RestaurantInfo {
     struct Restaurant {
         uint restaurantId;
         uint stakedFINDRTokens;
-        uint totalStakeRewards;
+        uint totalStakeRewards; //TODO: Figure out how to collect the rewards
         string details;
         bytes32[] reviewHashes;
     }
@@ -31,25 +32,26 @@ contract RestaurantInfo {
     mapping(bytes32 => AIRequest) aiRequestIdMap;
 
     uint public restaurantCount;
-    IERC20 public FINDRTokenAddress;
+    FINDR public FINDRTokenAddress;
     AIFunctionsClient public _aiFunctionsClient;
 
-    event RestaurantAdded(uint restaurantId, uint stakedFINDRTokens, string details);
+    event RestaurantAdded(uint restaurantId, string details);
     event ReviewProposed(uint restaurantId, bytes32 reviewHash, address owner);
     event ReviewAdded(uint restaurantId, bytes32 reviewHash, address owner);
     event ReviewRejected(uint restaurantId, bytes32 reviewHash, address owner);
 
-    //Add a constructor to set the FINDR token address
-    constructor(address _FINDRAddress, address aiFunctionsClientAddress) {
-        FINDRTokenAddress = IERC20(_FINDRAddress);
+    constructor() {}
+
+    function initialize(address _FINDRAddress, address aiFunctionsClientAddress) public {
+        FINDRTokenAddress = FINDR(_FINDRAddress);
         _aiFunctionsClient = AIFunctionsClient(aiFunctionsClientAddress);
     }
 
-    function addRestaurant(uint _restaurantId, uint _stakedFINDRTokens, string memory _details) public {
+    function addRestaurant(uint _restaurantId, string memory _details) public {
         require(restaurants[_restaurantId].restaurantId == 0, "Restaurant already exists");
-        restaurants[_restaurantId] = Restaurant(_restaurantId, _stakedFINDRTokens, 0, _details, new bytes32[](0));
+        restaurants[_restaurantId] = Restaurant(_restaurantId, 0, 0, _details, new bytes32[](0));
         restaurantCount++;
-        emit RestaurantAdded(_restaurantId, _stakedFINDRTokens, _details);
+        emit RestaurantAdded(_restaurantId, _details);
     }
 
     function addReview(uint _restaurantId,
@@ -72,7 +74,7 @@ contract RestaurantInfo {
     }
 
     /// This function is called by the AIFunctionsClient contract when it receives a response from the oracle
-    function afterAIResponse(bytes32 requestId, bytes memory response, bytes memory err) public onlyAIFunctionsClient returns (bool) {
+    function afterAIResponse(bytes32 requestId, bytes memory response, bytes memory err) public onlyAIFunctionsClient {
         require(msg.sender == address(_aiFunctionsClient), "Only the AIFunctionsClient contract can call this function");
         AIRequest memory aiRequest = aiRequestIdMap[requestId];
         restaurants[aiRequest.restaurantId].reviewHashes.push(aiRequest.reviewHash);
@@ -80,10 +82,12 @@ contract RestaurantInfo {
         uint reviewAIGeneratedProbability = abi.decode(response, (uint));
         if (reviewAIGeneratedProbability > 80) {
             emit ReviewRejected(aiRequest.restaurantId, aiRequest.reviewHash, aiRequest.owner);
-            return false;
         } else {
+            //Mint 1 FINDR token for the owner of the accepted review and 1 for the rewards to all the stakers of the restaurant
+            FINDRTokenAddress.mintReward(aiRequest.owner, 100000000);
+            FINDRTokenAddress.mintReward(address(this), 100000000);
+            restaurants[aiRequest.restaurantId].totalStakeRewards += 100000000;
             emit ReviewAdded(aiRequest.restaurantId, aiRequest.reviewHash, aiRequest.owner);
-            return true;
         }
     }
 
@@ -103,7 +107,7 @@ contract RestaurantInfo {
     function stakeRestaurant(uint _restaurantId, uint _stakedFINDRTokens) public payable checkAllowance(_stakedFINDRTokens) {
         //First staker of a restaurant will create the restaurant on the blockchain
         if (restaurants[_restaurantId].restaurantId == 0) {
-            addRestaurant(_restaurantId, 0, "");
+            addRestaurant(_restaurantId, "");
         }
         FINDRTokenAddress.transferFrom(msg.sender, address(this), _stakedFINDRTokens);
         stakeBalanceInfo[_restaurantId][msg.sender] += _stakedFINDRTokens;
@@ -137,11 +141,15 @@ contract RestaurantInfo {
         // Calculate the user's reward
         uint reward = totalReward.mul(percentOfTotalStake).div(1e18); // Divide by 1e18 to remove the added precision
 
-        // Transfer the reward
-        FINDRTokenAddress.transfer(msg.sender, reward);
+        // Transfer the reward + the user's staked tokens to the user
+        FINDRTokenAddress.transfer(msg.sender, userStake + reward);
 
         // Subtract the reward from the total rewards
         restaurants[_restaurantId].totalStakeRewards = totalReward.sub(reward);
+
+        //Subtract the user's stake from the total stake in the restaurant and balance info
+        restaurants[_restaurantId].stakedFINDRTokens = totalStake.sub(userStake);
+        stakeBalanceInfo[_restaurantId][msg.sender] = 0;
     }
 
     // Modifier to check token allowance of a user to this contract
