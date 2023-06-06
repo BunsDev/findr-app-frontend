@@ -1,25 +1,9 @@
-# 🍴 FNDR
+# 🍴 FINDR
 
 🧪 FINDR is a blockchain/ AI powered review app which gamifies the restaurant review process and offers incentives for the restaurant goers, reviewers and anyone who are generally interested in this space. It's a decentralized application that uses the scaffold-eth 2 toolkit to interact with the Ethereum blockchain. The app is equipped with features that allow users to find, stake and do other cool stuff that interact with smart contracts.
 
 ⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, and Typescript.
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
-
-## Contents
-
-- [Requirements](#requirements)
-- [Quickstart](#quickstart)
-- [Deploying your Smart Contracts to a Live Network](#deploying-your-smart-contracts-to-a-live-network)
-- [Deploying your NextJS App](#deploying-your-nextjs-app)
-- [Interacting with your Smart Contracts: FNDR Custom Hooks](#interacting-with-your-smart-contracts-fndr-custom-hooks)
-- [Disabling Type & Linting Error Checks](#disabling-type-and-linting-error-checks)
-  - [Disabling commit checks](#disabling-commit-checks)
-  - [Deploying to Vercel without any checks](#deploying-to-vercel-without-any-checks)
-  - [Disabling Github Workflow](#disabling-github-workflow)
-- [Contributing to FNDR](#contributing-to-fndr)
 
 ## Requirements
 
@@ -31,7 +15,7 @@ Before you begin, you need to install the following tools:
 
 ## Quickstart
 
-To get started with FNDR, follow the steps below:
+To get started with FINDR, follow the steps below:
 
 1. Clone this repo & install dependencies
 
@@ -67,45 +51,36 @@ yarn start
 
 Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the contract component or the example ui in the frontend. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
 
-Run smart contract test with `yarn hardhat:test`
+[//]: # (## Deploying your NextJS App)
 
-- Edit your smart contract `YourContract.sol` in `packages/hardhat/contracts`
-- Edit your frontend in `packages/nextjs/pages`
-- Edit your deployment scripts in `packages/hardhat/deploy`
+[//]: # ()
+[//]: # (You can deploy your NextJS app to a hosting provider like Vercel or Netlify. Before deploying, make sure to build your app using `yarn build`. After building, you can deploy the `packages/nextjs/out` directory to your hosting provider.)
 
-## Deploying your Smart Contracts to a Live Network
+## Contract Summary
 
-Once you are ready to deploy your smart contracts, there are a few things you need to adjust.
+### RestaurantInfo.sol
+**Restaurant Management:** Each restaurant is represented as a struct, containing information such as ID, the total amount of FINDR tokens staked for the restaurant, total stake rewards, details, and an array of hashes related to reviews.
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the contract component or the example UI in the frontend. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+**Staking:** Users can stake FINDR tokens on a restaurant. The first staker of a restaurant creates the restaurant on the blockchain. Users can also unstake their tokens, reducing the total amount of staked tokens on a restaurant and having the tokens returned to their address.
 
-Run smart contract test with `yarn hardhat:test`
+**Rewards:** Users can claim rewards proportional to the amount of FINDR tokens they have staked on a restaurant.
 
-- Edit your smart contract `YourContract.sol` in `packages/hardhat/contracts`
-- Edit your frontend in `packages/nextjs/pages`
-- Edit your deployment scripts in `packages/hardhat/deploy`
-- Edit your contract tests in `packages/hardhat/test`
+**Review Management:** Users can propose reviews for restaurants. Reviews are initially proposed, then sent to an AI client for analysis. This AI client eventually provides a response on the review. If the review passes the AI evaluation (with a success probability less than 80%), it is added to the list of approved reviews for the restaurant. If not, it gets rejected. Each review is identified by a hash, and the owner of the review is stored in the contract.
 
-## Deploying your Smart Contracts to a Live Network
+**AI Interactions:** The contract interacts with an external AI system through an AI client. The AI client sends requests for review analysis, and the contract handles responses from the AI client, updating the status of the proposed review accordingly.
 
-You can deploy your smart contracts to a live network using the `yarn deploy` command. Before running the command, you need to set up your network config in `hardhat.config.ts` and set up your account in `.secret` (note: do not commit `.secret`!).
+### AIFunctionsClient.sol
+**OpenAI Interactions:** The contract allows making requests to an AI oracle by calling the executeRequest function. The request contains JavaScript source code, encrypted secrets, arguments (in this case, the review text to be analyzed by the AI), a subscription ID for billing, and a gas limit.
 
-## Deploying your NextJS App
+**Request Fulfillment:** When the oracle completes the evaluation, it calls back the fulfillRequest function of the contract with the request ID, response, and any errors that occurred during execution. The contract stores the latest response and error, and emits an event with these details.
 
-You can deploy your NextJS app to a hosting provider like Vercel or Netlify. Before deploying, make sure to build your app using `yarn build`. After building, you can deploy the `packages/nextjs/out` directory to your hosting provider.
+### FINDR.sol
+**Initialization:** The constructor takes an initial supply of tokens as input and mints these tokens to the account deploying the contract. The token has a name "Restaurant finder token" and a symbol "FINDR".
 
-## Interacting with your Smart Contracts: FNDR Custom Hooks
-
-FNDR provides a set of custom hooks that make it easy to interact with your smart contracts. You can use these hooks in your components to read from and write to your smart contracts.
-
-## Disabling Type & Linting Error Checks
-
-If you want to disable the type and linting error checks, you can do so by following the instructions below.
-
-## Contributing to FNDR
-
-We welcome contributions to FNDR! You can contribute in many ways. Check our [contributing guide](CONTRIBUTING.md) for more information.
+**Decimals:** The decimals function is overridden to return 8 instead of the default 18 that's common for most ERC20 tokens. This means that the smallest fraction of a FINDR token that can be represented is 1e-8 FINDR. This is important for showing balances in user interfaces.
 
 
 
-We welcome contributions to FINDR!
+## Contributing to FINDR
+
+We welcome contributions to FINDR! You can contribute in many ways. Check our [contributing guide](CONTRIBUTING.md) for more information.

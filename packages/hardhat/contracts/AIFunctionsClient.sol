@@ -54,17 +54,18 @@ contract AIFunctionsClient is FunctionsClient, ConfirmedOwner {
     }
 
     /**
-     * @notice Callback that is invoked once the DON has resolved the request or hit an error
-   *
-   * @param requestId The request ID, returned by sendRequest()
-   * @param response Aggregated response from the user code
-   * @param err Aggregated error from the user code or from the execution pipeline
-   * Either response or error parameter will be set, but never both
-   */
+    * @notice Callback that is invoked once the DON has resolved the request or hit an error
+    * @dev This response is forwarded to the RestaurantInfo contract for further processing
+    * @param requestId The request ID, returned by sendRequest()
+    * @param response Aggregated response from the user code
+    * @param err Aggregated error from the user code or from the execution pipeline
+    * Either response or error parameter will be set, but never both
+    */
     function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
         latestResponse = response;
         latestError = err;
         emit AIReviewResponse(requestId, response, err);
+        restaurantInfoContract.afterAIResponse(requestId, response, err);
     }
 
     /**
