@@ -17,7 +17,7 @@ async function main() {
   // Consumer contract
   const consumerAddress = "0x011f9D114c631eD3490c6c43DDB63156E46079aA";
   const consumerAbiPath =
-    "./artifacts/contracts/AIResultConsumer.sol/AIResultConsumer.json";
+    "./artifacts/contracts/AIFunctionsClient.sol/AIFunctionsClient.json";
 
   const contractAbi = JSON.parse(
     await fs.readFile(consumerAbiPath, "utf8")

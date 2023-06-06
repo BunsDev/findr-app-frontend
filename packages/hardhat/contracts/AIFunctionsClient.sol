@@ -4,30 +4,33 @@ pragma solidity ^0.8.0;
 import "@chainlink/contracts/src/v0.8/dev/functions/FunctionsClient.sol";
 import "@chainlink/contracts/src/v0.8/dev/functions/Functions.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+import "./RestaurantInfo.sol";
 
 /**
  * @title Functions Consumer contract
- * @notice This contract is a demonstration of using Functions.
+ * @notice A contract that uses the Functions API to receive data from web APIs
  */
-contract AIResultConsumer is FunctionsClient, ConfirmedOwner {
+contract AIFunctionsClient is FunctionsClient, ConfirmedOwner {
     using Functions for Functions.Request;
 
     bytes32 public latestRequestId;
     bytes public latestResponse;
     bytes public latestError;
+    RestaurantInfo public restaurantInfoContract;
 
-    event OCRResponse(bytes32 indexed requestId, bytes result, bytes err);
+    event AIReviewResponse(bytes32 indexed requestId, bytes result, bytes err);
 
-
-    constructor(address oracle) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {}
+    constructor(address oracle, address restaurantInfoContractAddress) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {
+        restaurantInfoContract = RestaurantInfo(restaurantInfoContractAddress);
+    }
 
     /**
-   * @notice Send a simple request
+   * @notice Send a review request to the AI through the DON
    *
    * @param source JavaScript source code
    * @param secrets Encrypted secrets payload
-   * @param args List of arguments accessible from within the source code
-   * @param subscriptionId Funtions billing subscription ID
+   * @param args Has one arg only. The review text to be analyzed by the AI
+   * @param subscriptionId Functions billing subscription ID
    * @param gasLimit Maximum amount of gas used to call the client contract's `handleOracleFulfillment` function
    * @return Functions request ID
     */
@@ -37,7 +40,7 @@ contract AIResultConsumer is FunctionsClient, ConfirmedOwner {
         string[] calldata args,
         uint64 subscriptionId,
         uint32 gasLimit
-    ) public onlyOwner returns (bytes32) {
+    ) public onlyRestaurantInfoContract returns (bytes32) {
         Functions.Request memory req;
         req.initializeRequest(Functions.Location.Inline, Functions.CodeLanguage.JavaScript, source);
         if (secrets.length > 0) {
@@ -61,7 +64,7 @@ contract AIResultConsumer is FunctionsClient, ConfirmedOwner {
     function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
         latestResponse = response;
         latestError = err;
-        emit OCRResponse(requestId, response, err);
+        emit AIReviewResponse(requestId, response, err);
     }
 
     /**
@@ -75,5 +78,10 @@ contract AIResultConsumer is FunctionsClient, ConfirmedOwner {
 
     function addSimulatedRequestId(address oracleAddress, bytes32 requestId) public onlyOwner {
         addExternalRequest(oracleAddress, requestId);
+    }
+
+    modifier onlyRestaurantInfoContract() {
+        require(msg.sender == address(restaurantInfoContract), "Only the restaurant info contract can call this function");
+        _;
     }
 }
