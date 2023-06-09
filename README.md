@@ -76,7 +76,7 @@ Visit your app on: `http://localhost:3000`. You can interact with your smart con
 
 
 Note: This app depends on the FINDR backend. You can find the backend repo [Backend](https://github.com/Msrikrishna/FINDR-app-backend)
-
+Without running this, the review storage and retrieval will be affected.
 
 
 
