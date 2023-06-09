@@ -693,7 +693,7 @@ const contracts = {
       chainId: "11155111",
       contracts: {
         FINDR: {
-          address: "0xA930B9599A919D387426Fb87eA05597F79F31133",
+          address: "0x312D1c6343c6748Ef7b31198CBe3037Cd466942F",
           abi: [
             {
               inputs: [
@@ -1015,7 +1015,7 @@ const contracts = {
           ],
         },
         RestaurantInfo: {
-          address: "0x33CA2125A153861795Ed6AeBd68D1E05fDbb8d00",
+          address: "0xdA7bed113cB1c29eFBe230aE2cb5b2aE95420fa2",
           abi: [
             {
               inputs: [

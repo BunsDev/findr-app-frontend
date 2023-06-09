@@ -6,6 +6,7 @@ interface PopupProps {
   onClose: () => void;
 }
 
+//Shows a popup with the AI judgement after chainlink request is fulfilled
 const Popup: React.FC<PopupProps> = ({ canShowReviewAIJudgement, reviewAIJudgement, onClose }) => {
 
   if (!canShowReviewAIJudgement) {

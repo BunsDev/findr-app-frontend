@@ -45,22 +45,6 @@ export const CustomRestaurantMarker: React.FC<RestaurantInfoMarker> = props => {
       marker.setIcon("assets/res_icon.png");
       marker.addListener("click", async () => {
         props.callback!(props.id!);
-        // let infowindow = new google.maps.InfoWindow({
-        //     content: '<div id="content">' +
-        //         '<div id="siteNotice">' +
-        //         "</div>" +
-        //         '<h2 >Restaurant Name</h2>' +
-        //         '<p>' + props.name + '</p>' +
-        //         '<div id="bodyContent">' +
-        //         '<h2 >Stakes on this restaurant</h2>' +
-        //         '<p>' + props.stake + 'FINDR' + '</p>' +
-        //         "</div>" +
-        //         "</div>",
-        //     ariaLabel: props.name,
-        // });
-        // infowindow.open({
-        //     anchor: marker,
-        // });
       });
     }
   }, [marker, props.position]);

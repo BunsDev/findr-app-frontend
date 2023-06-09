@@ -8,6 +8,7 @@ import fs from "fs/promises";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
+import {CHAINlINK_REQUEST_SPECIFIC_GAS, ENCRYPTED_SECRETS, GOOGLE_MAPS_API_KEY, SUBSCRIPTION_ID} from "~~/constants";
 import {
   useDeployedContractInfo,
   useScaffoldContractRead,
@@ -15,7 +16,7 @@ import {
   useScaffoldEventSubscriber,
 } from "~~/hooks/scaffold-eth";
 import { getReviewsForARestaurant, submitReviewBackend } from "~~/pages/callBackend";
-import { CustomRestaurantMarker } from "~~/pages/maps_marker";
+import { CustomRestaurantMarker } from "~~/pages/mapsMarker";
 import Popup from "~~/pages/popUpAfterChainLinkJudgement";
 import RestaurantReviews, { Review } from "~~/pages/reviewCard";
 
@@ -23,7 +24,15 @@ import TextSearchRequest = google.maps.places.TextSearchRequest;
 import PlaceResult = google.maps.places.PlaceResult;
 
 export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  //Google maps API
+  interface RestaurantInfo {
+    id: string;
+    latLng?: google.maps.LatLng;
+    name?: string;
+    stake?: BigNumber;
+    reviews?: Review[];
+  }
+
+  //Google maps API hooks
   const [click, setClick] = React.useState<google.maps.LatLng>();
   const [zoom, setZoom] = React.useState(19); // initial zoom
   const [selectedRestaurant, setSelectedRestaurant] = useState("");
@@ -33,19 +42,13 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
   });
   let markerOnClick: google.maps.Marker;
 
-  interface RestaurantInfo {
-    id: string;
-    latLng?: google.maps.LatLng;
-    name?: string;
-    stake?: BigNumber;
-    reviews?: Review[];
-  }
-
   const [restaurants, setRestaurants] = React.useState<RestaurantInfo[]>([]);
 
   const render = (status: Status) => {
     return <h1>{status}</h1>;
   };
+
+  //Google Maps API on click event
   const onClick = (e: google.maps.MapMouseEvent, map: google.maps.Map) => {
     setClick(e.latLng!);
     if (markerOnClick != undefined) {
@@ -89,16 +92,29 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     setZoom(m.getZoom()!);
     setCenter(m.getCenter()!.toJSON());
   };
-
-  const { address } = useAccount();
+  //----------------------------------Hooks related to the app internal state----------------------------------------------------------
   const [newReview, setNewReview] = useState("");
   const [stakeAmount, setStakeAmount] = useState("1");
   const [showInfo, setShowInfo] = useState(true); // state to show or hide info box
   const [showReview, setShowReview] = useState(false); // state to show or hide the longer review
   const [canShowReviewAIJudgement, setCanShowReviewAIJudgement] = useState(false); // state to show or hide the longer review
   const [reviewAIJudgementInfo, setReviewAIJudgementInfo] = useState(""); // state to show or hide the longer review
-
   const coreContractData = useDeployedContractInfo("RestaurantInfo");
+
+  function getIntegerHashFromGoogleMapsId(input: string) {
+    let hash = 0;
+    const len = input.length;
+    for (let i = 0; i < len; i++) {
+      hash = (hash << 5) - hash + input.charCodeAt(i);
+      hash |= 0; // to 32bit integer
+    }
+    //console.log("Hash of Gmaps restaurant Id", Math.abs(hash));
+    return Math.abs(hash);
+  }
+  //----------------------------------Hooks related to the smart contracts----------------------------------------------------------
+
+  //The connected wallet address
+  const { address } = useAccount();
 
   //Give permission to the contract to get allowance from the user
   const { writeAsync: getTokenApproval } = useScaffoldContractWrite({
@@ -108,22 +124,11 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     value: "0",
   });
 
-  function getHash(input: string) {
-    let hash = 0;
-    const len = input.length;
-    for (let i = 0; i < len; i++) {
-      hash = (hash << 5) - hash + input.charCodeAt(i);
-      hash |= 0; // to 32bit integer
-    }
-    console.log("Hash of Gmaps restaurant Id", Math.abs(hash));
-    return Math.abs(hash);
-  }
-
   //State the allowance on the restaurant
   const { writeAsync: doStakeOnContract } = useScaffoldContractWrite({
     contractName: "RestaurantInfo",
     functionName: "stakeRestaurant",
-    args: [BigNumber.from(getHash(selectedRestaurant)), BigNumber.from(Number(stakeAmount))],
+    args: [BigNumber.from(getIntegerHashFromGoogleMapsId(selectedRestaurant)), BigNumber.from(Number(stakeAmount))],
     value: "0",
   });
 
@@ -131,24 +136,20 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
   const { writeAsync: claimRewardsForUser } = useScaffoldContractWrite({
     contractName: "RestaurantInfo",
     functionName: "claimReward",
-    args: [BigNumber.from(getHash(selectedRestaurant))],
+    args: [BigNumber.from(getIntegerHashFromGoogleMapsId(selectedRestaurant))],
   });
 
-  const encryptedSecrets =
-    "0xfee42b05e49f0bb7b15782016fd202d2027e04917d7689796521ac5bf7d8be853fdb84e44052a41e9bdf3e3d80b8e2bcc8b6e2a79c74c159a73baec9fdb64c58d1c52dd5d4a5bf60fac4919d7bb3c61cf7cf6b66ec583a5e17ed161fab5f2e52c1ebb965facb431a427cb46c2e71fd2f5de1dcc63374c3cc761c6b6716b6b912c91813c98a532b2727bedf4272816553ada29d326d397ec090edcf1f0145ce7954";
-  const subscriptionId = 410;
-  const chainLinkRequestGasLimit = 250000;
   //State the allowance on the restaurant
   const { writeAsync: sendReviewHash } = useScaffoldContractWrite({
     contractName: "RestaurantInfo",
     functionName: "addReview",
     args: [
-      BigNumber.from(getHash(selectedRestaurant)),
+      BigNumber.from(getIntegerHashFromGoogleMapsId(selectedRestaurant)),
       newReview,
       aiCallerSourceFile,
-      encryptedSecrets,
-      BigNumber.from(subscriptionId),
-      chainLinkRequestGasLimit,
+      ENCRYPTED_SECRETS,
+      BigNumber.from(SUBSCRIPTION_ID),
+      CHAINlINK_REQUEST_SPECIFIC_GAS,
     ],
     value: "0",
     gasLimit: BigNumber.from(5500000),
@@ -157,7 +158,7 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
   const { data: totalStakeOnRestaurant } = useScaffoldContractRead({
     contractName: "RestaurantInfo",
     functionName: "getRestaurantStakeTotal",
-    args: [BigNumber.from(getHash(selectedRestaurant))],
+    args: [BigNumber.from(getIntegerHashFromGoogleMapsId(selectedRestaurant))],
   });
 
   const { data: getClaimableReward } = useScaffoldContractRead({
@@ -175,9 +176,10 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
   const { data: reviewHashesOnChain } = useScaffoldContractRead({
     contractName: "RestaurantInfo",
     functionName: "getRestaurantReviewHashes",
-    args: [BigNumber.from(getHash(selectedRestaurant))],
+    args: [BigNumber.from(getIntegerHashFromGoogleMapsId(selectedRestaurant))],
   });
 
+  //Event listeners for the contract
   useScaffoldEventSubscriber({
     contractName: "RestaurantInfo",
     eventName: "ReviewAdded",
@@ -214,7 +216,6 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     if (selectedRestaurant === null) return;
     await claimRewardsForUser();
   };
-
 
   const sendReview = async () => {
     // Here you can handle the review submission.
@@ -275,7 +276,9 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
               <span className="text-4xl font-bold text-center mt-10">
                 Review for {restaurants.find(r => r.id === selectedRestaurant)!.name}
               </span>
-              <span className="text-2xl font-bold text-center mt-10">Staked FINDR: {totalStakeOnRestaurant?.toNumber()}</span>
+              <span className="text-2xl font-bold text-center mt-10">
+                Staked FINDR: {totalStakeOnRestaurant?.toNumber()}
+              </span>
 
               <input placeholder="Stake amount" value={stakeAmount} onChange={e => setStakeAmount(e.target.value)} />
               <button className="btn btn-primary mt-5" style={{ width: "150px" }} onClick={stakeRestaurant}>
@@ -333,7 +336,7 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
         </div>
 
         <div className="w-1/2 relative" style={{ height: "950px" }}>
-          <Wrapper apiKey={"AIzaSyAsj2bxWlpxNEuOOdid3_8uKyveChH4ZQU"} render={render} libraries={["places"]}>
+          <Wrapper apiKey={GOOGLE_MAPS_API_KEY} render={render} libraries={["places"]}>
             <Map
               center={center}
               onClick={onClick}
@@ -363,21 +366,29 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
   );
 }
 
+//Load the AI caller source file for ChainLink functions
 type Props = {
   aiCallerSourceFile: string;
 };
 export const getServerSideProps: GetServerSideProps = async () => {
-  console.log("Loading AI caller source file at", process.cwd() + "/staticfiles/chainlink/OpenAI-request.js");
-  const aiCallerSourceFile = await fs.readFile(process.cwd() + "/staticfiles/chainlink/OpenAI-request.js", "utf8");
+  // console.log(
+  //   "Loading AI caller source file at",
+  //   process.cwd() + "/staticfiles/chainlink/OpenAI-request.js",
+  // );
+  const aiCallerSourceFile = await fs.readFile(
+    process.cwd() + "/staticfiles/chainlink/OpenAI-request.js",
+    "utf8",
+  );
   return {
     props: {
       aiCallerSourceFile: aiCallerSourceFile,
     },
   };
 };
+
 <script async src="https://maps.googleapis.com/maps/api/js?key="></script>;
 
-//Google Maps related imports
+//Google Maps related imports. Need to include this to use google maps in the app
 interface MapProps extends google.maps.MapOptions {
   style: { [key: string]: string };
   onClick?: (e: google.maps.MapMouseEvent, map: google.maps.Map) => void;
@@ -447,8 +458,6 @@ const deepCompareEqualsForMaps = createCustomEqual(deepEqual => (a: any, b: any)
   if (isLatLngLiteral(a) || a instanceof google.maps.LatLng || isLatLngLiteral(b) || b instanceof google.maps.LatLng) {
     return new google.maps.LatLng(a).equals(new google.maps.LatLng(b));
   }
-
-  // TODO extend to other types
 
   // use fast-equals for other objects
   // @ts-ignore

@@ -4,6 +4,7 @@ import { ContractUI } from "~~/components/scaffold-eth";
 import { ContractName } from "~~/utils/scaffold-eth/contract";
 import { getContractNames } from "~~/utils/scaffold-eth/contractNames";
 
+//Just for contract debugging. Do not inject this
 const Debug: NextPage = () => {
   const contractNames = getContractNames();
   const [selectedContract, setSelectedContract] = useState<ContractName>(contractNames[0]);

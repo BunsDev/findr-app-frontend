@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BigNumber } from "ethers";
 import { getReviewsForARestaurant } from "~~/pages/callBackend";
-import { CustomRestaurantMarker } from "~~/pages/maps_marker";
 
 interface RestaurantInfo {
   id: string;
@@ -22,6 +21,7 @@ interface ReviewCardProps {
   review: Review;
 }
 
+//Shows the AI filtered reviews on the map
 const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => (
   <div className="flex flex-col mt-6 px-7 py-8 bg-base-200 opacity-80 rounded-2xl shadow-lg">
     <h3>Owner address: {review.ownerInfo}</h3>

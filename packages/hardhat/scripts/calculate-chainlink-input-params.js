@@ -2,8 +2,9 @@ const ethcrypto = require("eth-crypto");
 const axios = require("axios");
 const fs = require("fs").promises;
 
+//Use this to create encrypted secrets for the Chainlink calls on the frontend. Keep the created gist forever
 async function main() {
-  const source = await fs.readFile("./scripts/OpenAI-request.js", "utf8");
+  const source = await fs.readFile("./scripts/OpenAI-custom-chainlink-request.js", "utf8");
   console.log("Source: " + source);
   const secrets = { apiKey: process.env.OPENAI_API_KEY };
 
@@ -41,8 +42,6 @@ async function main() {
     encryptedSecrets = "0x";
   }
   console.log("Encrypted secrets: " + encryptedSecrets);
-  encryptedSecrets =
-    "0xfee42b05e49f0bb7b15782016fd202d2027e04917d7689796521ac5bf7d8be853fdb84e44052a41e9bdf3e3d80b8e2bcc8b6e2a79c74c159a73baec9fdb64c58d1c52dd5d4a5bf60fac4919d7bb3c61cf7cf6b66ec583a5e17ed161fab5f2e52c1ebb965facb431a427cb46c2e71fd2f5de1dcc63374c3cc761c6b6716b6b912c91813c98a532b2727bedf4272816553ada29d326d397ec090edcf1f0145ce7954";
 }
 
 // Encrypt the secrets as defined in requestConfig

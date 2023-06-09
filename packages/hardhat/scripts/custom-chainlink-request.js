@@ -1,5 +1,6 @@
 const ethcrypto = require("eth-crypto");
 const axios = require("axios");
+const {CONSUMER_ADDRESS, CHAINlINK_REQUEST_SPECIFIC_GAS, SUBSCRIPTION_ID} = require("./constants");
 const fs = require("fs").promises;
 
 async function main() {
@@ -15,19 +16,19 @@ async function main() {
   const signer = new ethers.Wallet(signerPrivateKey, provider);
 
   // Consumer contract
-  const consumerAddress = "0x33CA2125A153861795Ed6AeBd68D1E05fDbb8d00";
+  const consumerAddress = CONSUMER_ADDRESS;
   const consumerAbiPath = "./artifacts/contracts/RestaurantInfo.sol/RestaurantInfo.json";
 
   const contractAbi = JSON.parse(await fs.readFile(consumerAbiPath, "utf8")).abi;
   const consumerContract = new ethers.Contract(consumerAddress, contractAbi, signer);
 
   // Transaction config
-  const gasLimit = 300000; // Transaction gas limit
+  const gasLimit = CHAINlINK_REQUEST_SPECIFIC_GAS; // Transaction gas limit
   const verificationBlocks = 2; // Number of blocks to wait for transaction
 
   // Chainlink Functions request config
   // Chainlink Functions subscription ID
-  const subscriptionId = "410";
+  const subscriptionId = SUBSCRIPTION_ID;
   // Gas limit for the Chainlink Functions request
   const requestGas = 5500000;
 

@@ -2,7 +2,7 @@
 
 🧪 FINDR is a blockchain/ AI powered review app which gamifies the restaurant review process and offers incentives for the restaurant goers, reviewers and anyone who are generally interested in this space. It's a decentralized application that uses the scaffold-eth 2 toolkit to interact with the Ethereum blockchain. The app is equipped with features that allow users to find, stake and do other cool stuff that interact with smart contracts.
 
-⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, and Typescript.
+⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, Typescript and Chainlink
 
 
 ## Requirements
@@ -27,29 +27,59 @@ cd FINDR-app-frontend
 yarn install
 ```
 
-2. Run a local network in the first terminal:
+Before you deploy the contracts, you need to create a `.env` file in the `packages/hardhat` directory. This file should contain the following environment variables:
 
 ```
-yarn chain
+DEPLOYER_PRIVATE_KEY
+ETHERSCAN_API_KEY?
+QUICKNODE_API_KEY
+GITHUB_API_TOKEN?
+OPENAI_API_KEY?
 ```
 
-This command starts a local Ethereum network using Hardhat. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `hardhat.config.ts`.
+The properties with "?" are optional. You might need them for specific purposes like creating encrypted secrets, uploading gists etc
 
-3. On a second terminal, deploy the test contract:
+
+2. On a second terminal, deploy the contracts
 
 ```
 yarn deploy
 ```
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/hardhat/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/hardhat/deploy` to deploy the contract to the network. You can also customize the deploy script.
+This project is configured to use **Ethereum Sepolia** testnet by default. If you want to use a different network, you can change the network configuration in `packages/hardhat/hardhat.config.ts`.
+Make sure this network supports ChainLink Functions.
+
+
+3. Next, create a subscription for the AI client contract. Make sure you have LINK on the deployer wallet before proceeding 
+and you are whitelisted to use the ChainLink functions.
+
+After successful subscription creation, you can modify **hardhat/scripts/contants.js** to use the subscription ID you just created.
+Then you can try executing the custom-chainlink-request.js script to test the AI client contract works as expected.
+
+```
+npx hardhat run scripts/functions-sub.js --network sepolia
+npx hardhat run scripts/custom-chainlink-request.js --network sepolia
+
+```
+
 
 4. On a third terminal, start your NextJS app:
+
+Before you start, you need to recheck the **nextjs/constants.ts** Make sure all the properties are in sync with the contract deployment
+
 
 ```
 yarn start
 ```
 
 Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the contract component or the example ui in the frontend. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+
+
+Note: This app depends on the FINDR backend. You can find the backend repo [Backend](https://github.com/Msrikrishna/FINDR-app-backend)
+
+
+
+
 
 [//]: # (## Deploying your NextJS App)
 
@@ -63,14 +93,11 @@ Visit your app on: `http://localhost:3000`. You can interact with your smart con
 
 **Staking:** Users can stake FINDR tokens on a restaurant. The first staker of a restaurant creates the restaurant on the blockchain. Users can also unstake their tokens, reducing the total amount of staked tokens on a restaurant and having the tokens returned to their address.
 
-**Rewards:** Users can claim rewards proportional to the amount of FINDR tokens they have staked on a restaurant.
+**Rewards:** Users can collect rewards as their reviews are accepted by the ChanLink AI Client
 
 **Review Management:** Users can propose reviews for restaurants. Reviews are initially proposed, then sent to an AI client for analysis. This AI client eventually provides a response on the review. If the review passes the AI evaluation (with a success probability less than 80%), it is added to the list of approved reviews for the restaurant. If not, it gets rejected. Each review is identified by a hash, and the owner of the review is stored in the contract.
 
-**AI Interactions:** The contract interacts with an external AI system through an AI client. The AI client sends requests for review analysis, and the contract handles responses from the AI client, updating the status of the proposed review accordingly.
-
-### AIFunctionsClient.sol
-**OpenAI Interactions:** The contract allows making requests to an AI oracle by calling the executeRequest function. The request contains JavaScript source code, encrypted secrets, arguments (in this case, the review text to be analyzed by the AI), a subscription ID for billing, and a gas limit.
+**OpenAI Interactions:** The contract interacts with an external AI system through an AI client. The AI client sends requests for review analysis, and the contract handles responses from the AI client, updating the status of the proposed review accordingly.
 
 **Request Fulfillment:** When the oracle completes the evaluation, it calls back the fulfillRequest function of the contract with the request ID, response, and any errors that occurred during execution. The contract stores the latest response and error, and emits an event with these details.
 
@@ -79,8 +106,3 @@ Visit your app on: `http://localhost:3000`. You can interact with your smart con
 
 **Decimals:** The decimals function is overridden to return 8 instead of the default 18 that's common for most ERC20 tokens. This means that the smallest fraction of a FINDR token that can be represented is 1e-8 FINDR. This is important for showing balances in user interfaces.
 
-
-
-## Contributing to FINDR
-
-We welcome contributions to FINDR! You can contribute in many ways. Check our [contributing guide](CONTRIBUTING.md) for more information.
