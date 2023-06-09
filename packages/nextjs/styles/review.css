@@ -1,0 +1,11 @@
+.textarea-input {
+    width: 100%;
+    min-height: 500px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-size: 16px;
+    line-height: 1.5;
+    resize: both; /* Prevents manual resizing */
+    box-sizing: border-box;
+}

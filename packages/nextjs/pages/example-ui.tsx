@@ -3,7 +3,7 @@ import type { NextPage } from "next";
 import { ContractData } from "~~/components/example-ui/ContractData";
 import { ContractInteraction } from "~~/components/example-ui/ContractInteraction";
 
-const ExampleUI: NextPage = () => {
+const UI: NextPage = () => {
   return (
     <>
       <Head>
@@ -21,4 +21,4 @@ const ExampleUI: NextPage = () => {
   );
 };
 
-export default ExampleUI;
+export default UI;

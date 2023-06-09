@@ -46,14 +46,17 @@ contract RestaurantInfo is FunctionsClient, ConfirmedOwner{
     uint public restaurantCount;
     FINDR public FINDRTokenAddress;
 
-    bytes32 public immutable AI_JOB_KECCAK256 = keccak256(abi.encodePacked("AI_JOB"));
+    //Chainlink AI JOB file hash. This should match the request source
+    bytes32 public immutable AI_JOB_KECCAK256;
 
     event RestaurantAdded(uint restaurantId, string details);
     event ReviewProposed(uint restaurantId, bytes32 reviewHash, address owner);
     event ReviewAdded(uint restaurantId, bytes32 reviewHash, address owner);
     event ReviewRejected(uint restaurantId, bytes32 reviewHash, address owner);
 
-    constructor(address oracle) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {}
+    constructor(address oracle, bytes32 jobKeccak) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {
+        AI_JOB_KECCAK256 = jobKeccak;
+    }
 
     function initialize(address _FINDRAddress) onlyOwner public {
         FINDRTokenAddress = FINDR(_FINDRAddress);
@@ -72,7 +75,10 @@ contract RestaurantInfo is FunctionsClient, ConfirmedOwner{
             bytes calldata secrets,
             uint64 subscriptionId,
             uint32 gasLimit) public returns (uint) {
-        require(restaurants[_restaurantId].restaurantId != 0, "Restaurant does not exist");
+        if (restaurants[_restaurantId].restaurantId == 0) {
+            addRestaurant(_restaurantId, "");
+        }
+        require(_convertStringToBytes32Hash(source) == AI_JOB_KECCAK256, "Invalid AI job source file");
         bytes32 _reviewHash = _convertStringToBytes32Hash(review);
         string[] memory args = new string[](1);
         args[0] = review;

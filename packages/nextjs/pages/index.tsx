@@ -1,20 +1,17 @@
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import Head from "next/head";
-import { ContractData } from "./ContractData";
 import { Status, Wrapper } from "@googlemaps/react-wrapper";
 import { isLatLngLiteral } from "@googlemaps/typescript-guards";
-import { BigNumber, ethers } from "ethers";
+import { BigNumber } from "ethers";
 import { createCustomEqual } from "fast-equals";
 import fs from "fs/promises";
-import type { GetServerSideProps, InferGetServerSidePropsType, NextPage } from "next";
-import path from "path";
+import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
-import { ContractUI } from "~~/components/scaffold-eth";
-import { useDeployedContractInfo, useScaffoldContract, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import { useDeployedContractInfo, useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import { getReviewsForARestaurant, submitReviewBackend } from "~~/pages/callBackend";
 import { CustomRestaurantMarker } from "~~/pages/maps_marker";
-import { ContractName } from "~~/utils/scaffold-eth/contract";
-import { getContractNames } from "~~/utils/scaffold-eth/contractNames";
+import RestaurantReviews, { Review } from "~~/pages/reviewCard";
 
 import TextSearchRequest = google.maps.places.TextSearchRequest;
 import PlaceResult = google.maps.places.PlaceResult;
@@ -35,6 +32,7 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     latLng?: google.maps.LatLng;
     name?: string;
     stake?: BigNumber;
+    reviews?: Review[];
   }
 
   const [restaurants, setRestaurants] = React.useState<RestaurantInfo[]>([]);
@@ -91,7 +89,6 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
   const [newReview, setNewReview] = useState("");
   const [showInfo, setShowInfo] = useState(true); // state to show or hide info box
   const [showReview, setShowReview] = useState(false); // state to show or hide the longer review
-  const [longerReview, setLongerReview] = useState(""); // state to hold the longer review text
 
   const coreContractData = useDeployedContractInfo("RestaurantInfo");
 
@@ -133,8 +130,27 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     gasLimit: BigNumber.from(5500000),
   });
 
-  const contractNames = getContractNames();
-  const [selectedContract, setSelectedContract] = useState<ContractName>(contractNames[0]);
+  const { data: newReviewHash } = useScaffoldContractRead({
+    contractName: "RestaurantInfo",
+    functionName: "_convertStringToBytes32Hash",
+    args: [newReview],
+  });
+
+  // useScaffoldEventSubscriber({
+  //   contractName: "RestaurantInfo",
+  //   eventName: "ReviewAdded",
+  //   listener: (restaurantId, reviewHash, owner) => {
+  //     console.log("Review added after processing with AI", restaurantId, reviewHash, owner);
+  //   },
+  // });
+  //
+  // useScaffoldEventSubscriber({
+  //   contractName: "RestaurantInfo",
+  //   eventName: "ReviewRejected",
+  //   listener: (restaurantId, reviewHash, owner) => {
+  //     console.log("Review rejected after processing with AI", restaurantId, reviewHash, owner);
+  //   },
+  // });
 
   const stakeRestaurant = async () => {
     if (selectedRestaurant === null) return;
@@ -148,7 +164,19 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
 
   const sendReview = async () => {
     // Here you can handle the review submission.
-    //TODO: Integrate with backend for storage
+    console.log(
+      JSON.stringify(
+        {
+          newReviewHash: newReviewHash,
+          newReview: newReview,
+          address: address,
+          selectedRestaurant: selectedRestaurant,
+        },
+        null,
+        2,
+      ),
+    );
+    await submitReviewBackend(newReviewHash, newReview, address, selectedRestaurant);
     await sendReviewHash();
     console.log(newReview);
     setNewReview("");
@@ -161,7 +189,7 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
   return (
     <>
       <Head>
-        <title>FNDR App</title>
+        <title>FINDR App</title>
         <meta name="description" content="Created with 🏗 scaffold-eth-2" />
       </Head>
 
@@ -189,7 +217,7 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
 
           {selectedRestaurant && (
             <div className="flex flex-col mt-6 px-7 py-8 bg-base-200 opacity-80 rounded-2xl shadow-lg">
-              <span className="text-2xl sm:text-4xl text-white">
+              <span className="text-4xl font-bold text-center mt-10">
                 Review for {restaurants.find(r => r.id === selectedRestaurant)!.name}
               </span>
 
@@ -199,12 +227,11 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
               <button className="btn btn-primary mt-5" style={{ width: "150px" }} onClick={getAllowanceForStaking}>
                 Give allowance
               </button>
-              <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-5">
-                <input
-                  type="text"
+              <div className="flex flex-col mt-6 px-7 py-8 bg-base-200 opacity-80 rounded-2xl ">
+                <textarea
                   placeholder="Write your review here"
-                  className="input font-bai-jamjuree w-full px-5 border border-primary text-lg sm:text-2xl placeholder-white"
                   value={newReview}
+                  rows={5}
                   onChange={e => setNewReview(e.target.value)}
                 />
                 <button
@@ -220,14 +247,33 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
           {selectedRestaurant && (
             <div className="flex flex-col mt-6 px-7 py-8 bg-base-200 opacity-80 rounded-2xl shadow-lg">
               <button className="btn btn-primary" onClick={toggleReview}>
-                Get Review
+                Get Reviews
               </button>
               {showReview && (
-                <p className="mt-4 text-lg sm:text-2xl">
-                  Excellent service, great food, loved the ambiance! This is a sample review text for the{" "}
-                  {restaurants.find(r => r.id === selectedRestaurant)!.name}. It provides detailed information about the
-                  restaurant and its offerings.
-                </p>
+                <RestaurantReviews
+                  restaurant={restaurants.find(r => r.id === selectedRestaurant)}
+                  reviews={
+                    getReviewsForARestaurant(restaurants.find(r => r.id === selectedRestaurant))
+                    // //Create a list of sample reviews
+                    // [
+                    //   {
+                    //     id: "1",
+                    //     reviewer: "0x1234567890123456789012345678901234567890",
+                    //     text: "This is a sample review",
+                    //   },
+                    //   {
+                    //     id: "1",
+                    //     reviewer: "0x1234567890123456789012345678901234567890",
+                    //     text: "This is a sample review",
+                    //   },
+                    //   {
+                    //     id: "1",
+                    //     reviewer: "0x1234567890123456789012345678901234567890",
+                    //     text: "This is a sample review",
+                    //   },
+                    // ]
+                  }
+                ></RestaurantReviews>
               )}
             </div>
           )}

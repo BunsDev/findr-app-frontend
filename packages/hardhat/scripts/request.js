@@ -15,7 +15,7 @@ async function main() {
   const signer = new ethers.Wallet(signerPrivateKey, provider);
 
   // Consumer contract
-  const consumerAddress = "0xFDA3024d270ed63b2843251A468103a5e365194f";
+  const consumerAddress = "0x553C15A89aeB762B0F427a3db33bA9B5eCeC56dd";
   const consumerAbiPath = "./artifacts/contracts/RestaurantInfo.sol/RestaurantInfo.json";
 
   const contractAbi = JSON.parse(await fs.readFile(consumerAbiPath, "utf8")).abi;

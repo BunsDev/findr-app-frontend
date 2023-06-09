@@ -1090,7 +1090,7 @@ const contracts = {
           ],
         },
         FINDR: {
-          address: "0x19F6914127fb8d5D8BE0f404c9624D41CbEB067e",
+          address: "0xAcdEb8fdD7879B68f4F22DA06DB640beE114b9bD",
           abi: [
             {
               inputs: [
@@ -1412,7 +1412,7 @@ const contracts = {
           ],
         },
         RestaurantInfo: {
-          address: "0xFDA3024d270ed63b2843251A468103a5e365194f",
+          address: "0x553C15A89aeB762B0F427a3db33bA9B5eCeC56dd",
           abi: [
             {
               inputs: [
@@ -1420,6 +1420,11 @@ const contracts = {
                   internalType: "address",
                   name: "oracle",
                   type: "address",
+                },
+                {
+                  internalType: "bytes32",
+                  name: "jobKeccak",
+                  type: "bytes32",
                 },
               ],
               stateMutability: "nonpayable",
@@ -1640,6 +1645,19 @@ const contracts = {
             },
             {
               inputs: [],
+              name: "AI_JOB_KECCAK256",
+              outputs: [
+                {
+                  internalType: "bytes32",
+                  name: "",
+                  type: "bytes32",
+                },
+              ],
+              stateMutability: "view",
+              type: "function",
+            },
+            {
+              inputs: [],
               name: "FINDRTokenAddress",
               outputs: [
                 {
@@ -1816,45 +1834,6 @@ const contracts = {
                 },
               ],
               stateMutability: "view",
-              type: "function",
-            },
-            {
-              inputs: [
-                {
-                  internalType: "string",
-                  name: "source",
-                  type: "string",
-                },
-                {
-                  internalType: "bytes",
-                  name: "secrets",
-                  type: "bytes",
-                },
-                {
-                  internalType: "string[]",
-                  name: "args",
-                  type: "string[]",
-                },
-                {
-                  internalType: "uint64",
-                  name: "subscriptionId",
-                  type: "uint64",
-                },
-                {
-                  internalType: "uint32",
-                  name: "gasLimit",
-                  type: "uint32",
-                },
-              ],
-              name: "executeRequest",
-              outputs: [
-                {
-                  internalType: "bytes32",
-                  name: "",
-                  type: "bytes32",
-                },
-              ],
-              stateMutability: "nonpayable",
               type: "function",
             },
             {

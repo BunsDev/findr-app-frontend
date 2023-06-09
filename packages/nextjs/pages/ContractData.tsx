@@ -21,8 +21,9 @@ export const ContractData = () => {
   const greetingRef = useRef<HTMLDivElement>(null);
 
   const { data: totalCounter } = useScaffoldContractRead({
-    contractName: "YourContract",
-    functionName: "totalCounter",
+    contractName: "RestaurantInfo",
+    functionName: "_convertStringToBytes32Hash",
+    args: ["Some revitew text"],
   });
 
   const { data: currentGreeting, isLoading: isGreetingLoading } = useScaffoldContractRead({
