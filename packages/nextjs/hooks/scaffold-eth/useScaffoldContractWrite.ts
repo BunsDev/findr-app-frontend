@@ -23,6 +23,7 @@ export const useScaffoldContractWrite = <
   functionName,
   args,
   value,
+  gasLimit,
   ...writeConfig
 }: UseScaffoldWriteConfig<TContractName, TFunctionName>) => {
   const { data: deployedContractData } = useDeployedContractInfo(contractName);
@@ -40,6 +41,7 @@ export const useScaffoldContractWrite = <
     functionName: functionName as any,
     overrides: {
       value: value ? utils.parseEther(value) : undefined,
+      gasLimit: gasLimit ? gasLimit : undefined,
     },
     ...writeConfig,
   });

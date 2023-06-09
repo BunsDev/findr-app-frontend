@@ -3,7 +3,7 @@ async function main() {
   const linkAmount = "1";
   // Set your consumer contract address. This contract will
   // be added as an approved consumer of the subscription.
-  const consumer = "0x011f9D114c631eD3490c6c43DDB63156E46079aA";
+  const consumer = "0xFDA3024d270ed63b2843251A468103a5e365194f";
 
   // Network-specific configs
   // Polygon Mumbai LINK 0x326C977E6efc84E512bB9C30f76E30c160eD06FB
@@ -20,12 +20,13 @@ async function main() {
     "contracts/dev/functions/FunctionsBillingRegistry.sol:FunctionsBillingRegistry"
   );
   const registry = await RegistryFactory.attach(functionsBillingRegistryProxy);
-
-  const createSubscriptionTx = await registry.createSubscription();
-  const createSubscriptionReceipt = await createSubscriptionTx.wait(1);
-  const subscriptionId =
-    createSubscriptionReceipt.events[0].args["subscriptionId"].toNumber();
-  console.log(`Subscription created with ID: ${subscriptionId}`);
+  //
+  // const createSubscriptionTx = await registry.createSubscription();
+  // const createSubscriptionReceipt = await createSubscriptionTx.wait(1);
+  // const subscriptionId =
+  //   createSubscriptionReceipt.events[0].args["subscriptionId"].toNumber();
+  // console.log(`Subscription created with ID: ${subscriptionId}`);
+  const subscriptionId = 410;
 
   //Get the amount to fund, and ensure the wallet has enough funds
   const juelsAmount = ethers.utils.parseUnits(linkAmount);
@@ -41,16 +42,16 @@ async function main() {
     throw Error(`Insufficent LINK balance`);
   }
 
-  console.log(`Funding with ` + juelsAmount + ` Juels (1 LINK = 10^18 Juels)`);
-  const fundTx = await linkToken.transferAndCall(
-    functionsBillingRegistryProxy,
-    juelsAmount,
-    ethers.utils.defaultAbiCoder.encode(["uint64"], [subscriptionId])
-  );
-  await fundTx.wait(1);
-  console.log(
-    `Subscription ${subscriptionId} funded with ${juelsAmount} Juels (1 LINK = 10^18 Juels)`
-  );
+  // console.log(`Funding with ` + juelsAmount + ` Juels (1 LINK = 10^18 Juels)`);
+  // const fundTx = await linkToken.transferAndCall(
+  //   functionsBillingRegistryProxy,
+  //   juelsAmount,
+  //   ethers.utils.defaultAbiCoder.encode(["uint64"], [subscriptionId])
+  // );
+  // await fundTx.wait(1);
+  // console.log(
+  //   `Subscription ${subscriptionId} funded with ${juelsAmount} Juels (1 LINK = 10^18 Juels)`
+  // );
 
   //Authorize deployed contract to use new subscription
   console.log(

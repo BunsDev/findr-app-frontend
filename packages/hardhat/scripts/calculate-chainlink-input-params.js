@@ -3,9 +3,12 @@ const axios = require("axios");
 const fs = require("fs").promises;
 
 async function main() {
+  const source = await fs.readFile("./scripts/OpenAI-request.js", "utf8");
+  console.log("Source: " + source);
+  const secrets = { apiKey: process.env.OPENAI_API_KEY };
+
   // Provider config currently set for Polygon Mumbai
   const quickNodeApiKey = process.env.QUICKNODE_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
-
   const provider = new ethers.providers.JsonRpcProvider(
     `https://alien-wild-friday.ethereum-sepolia.discover.quiknode.pro/${quickNodeApiKey}`,
   );
@@ -14,44 +17,8 @@ async function main() {
   const signerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
   const signer = new ethers.Wallet(signerPrivateKey, provider);
 
-  // Consumer contract
-  const consumerAddress = "0xFDA3024d270ed63b2843251A468103a5e365194f";
-  const consumerAbiPath = "./artifacts/contracts/RestaurantInfo.sol/RestaurantInfo.json";
-
-  const contractAbi = JSON.parse(await fs.readFile(consumerAbiPath, "utf8")).abi;
-  const consumerContract = new ethers.Contract(consumerAddress, contractAbi, signer);
-
-  // Transaction config
-  const gasLimit = 250000; // Transaction gas limit
-  const verificationBlocks = 2; // Number of blocks to wait for transaction
-
-  // Chainlink Functions request config
-  // Chainlink Functions subscription ID
-  const subscriptionId = "410";
-  // Gas limit for the Chainlink Functions request
-  const requestGas = 5500000;
-
-  // // Default example
-  // const source = await fs.readFile("./scripts/Functions-request-source.js", "utf8");
-  // const args = ["ETH", "USD"];
-
-  const source = await fs.readFile("./scripts/OpenAI-request.js", "utf8");
-  const args = ["Some review about a restaurant"];
-  const secrets = { apiKey: process.env.OPENAI_API_KEY };
-
-  // Tutorial 7
-  // const source = await fs.readFile(
-  //   "./examples/Functions-source-inline-secrets.js",
-  //   "utf8"
-  // );
-  // const args = ["1", "bitcoin", "btc-bitcoin"];
-  // const secrets = [
-  //   "https://clfunctions.s3.eu-north-1.amazonaws.com/offchain-secrets.json",
-  // ];
-
-  // Create an oracle contract object.
-  // Used in this script only to encrypt secrets.
-  const oracleAddress = "0x649a2C205BE7A3d5e99206CEEFF30c794f0E31EC"; // Polygon Mumbai
+  //Oracle address
+  const oracleAddress = "0x649a2C205BE7A3d5e99206CEEFF30c794f0E31EC"; // ETH Sepolia
   const oracleAbiPath = "./artifacts/contracts/dev/functions/FunctionsOracle.sol/FunctionsOracle.json";
   const oracleAbi = JSON.parse(await fs.readFile(oracleAbiPath, "utf8")).abi;
   const oracle = new ethers.Contract(oracleAddress, oracleAbi, signer);
@@ -74,107 +41,8 @@ async function main() {
     encryptedSecrets = "0x";
   }
   console.log("Encrypted secrets: " + encryptedSecrets);
-
-  let store = {};
-  oracle.on("UserCallbackError", (eventRequestId, msg) => {
-    store[eventRequestId] = { userCallbackError: true, msg: msg };
-  });
-  oracle.on("UserCallbackRawError", (eventRequestId, msg) => {
-    store[eventRequestId] = { userCallbackRawError: true, msg: msg };
-  });
-  consumerContract.on("AIReviewResponse", (eventRequestId, response, err) => {
-    store[eventRequestId] = { response: response, err: err };
-  });
-
-  await new Promise(async (resolve, reject) => {
-    let cleanupInProgress = false;
-    const cleanup = async () => {
-      if (doGistCleanup) {
-        if (!cleanupInProgress) {
-          cleanupInProgress = true;
-          //await deleteGist(process.env["GITHUB_API_TOKEN"], gistUrl);
-          return resolve();
-        }
-        return;
-      }
-      return resolve();
-    };
-
-    // Submit the request
-    // Order of the parameters is critical
-    const requestTx = await consumerContract.addReview(
-        1,
-      "Some review text",
-      source,
-      encryptedSecrets ?? "0x",
-      subscriptionId, // Subscription ID
-      gasLimit, // Gas limit for the transaction
-      (overrides = {
-        //Gas limit for the Chainlink Functions request
-        gasLimit: requestGas,
-      }),
-    );
-
-    let requestId;
-
-    console.log(`Waiting ${verificationBlocks} blocks for transaction ` + `${requestTx.hash} to be confirmed...`);
-
-    // TODO: Need a better way to print this. Works on some requests and not others
-    // Doesn't handle subscription balance errors correctly
-    const requestTxReceipt = await requestTx.wait(verificationBlocks);
-
-    const requestEvent = requestTxReceipt.events.filter(event => event.event === "RequestSent")[0];
-
-    requestId = requestEvent.args.id;
-    console.log(`\nRequest ${requestId} initiated`);
-
-    console.log(`Waiting for fulfillment...\n`);
-
-    // poll
-    let polling;
-    async function checkStore() {
-      const result = store[requestId];
-      if (result) {
-        console.log(`\nRequest ${requestId} fulfilled!`);
-        if (result.userCallbackError) {
-          console.error(
-            "Error encountered when calling fulfillRequest in client contract.\n" +
-              "Ensure the fulfillRequest function in the client contract is correct and the --gaslimit is sufficient.",
-          );
-          console.error(`${msg}\n`);
-        } else if (result.userCallbackRawError) {
-          console.error("Raw error in contract request fulfillment. Please contact Chainlink support.");
-          console.error(Buffer.from(msg, "hex").toString());
-        } else {
-          const { response, err } = result;
-          if (response !== "0x") {
-            console.log(
-              `Response returned to client contract represented as a hex string: ${BigInt(response).toString()}`,
-            );
-          }
-          if (err !== "0x") {
-            console.error(`Error message returned to client contract: "${Buffer.from(err.slice(2), "hex")}"\n`);
-          }
-        }
-
-        clearInterval(polling);
-        await cleanup();
-      }
-    }
-
-    polling = setInterval(checkStore, 1000); // poll every second to see if an event once received
-
-    // If a response is not received within 5 minutes, the request has failed
-    setTimeout(
-      () =>
-        reject(
-          "A response not received within 5 minutes of the request " +
-            "being initiated and has been canceled. Your subscription " +
-            "was not charged. Please make a new request.",
-        ),
-      300_000,
-    );
-  });
+  encryptedSecrets =
+    "0xfee42b05e49f0bb7b15782016fd202d2027e04917d7689796521ac5bf7d8be853fdb84e44052a41e9bdf3e3d80b8e2bcc8b6e2a79c74c159a73baec9fdb64c58d1c52dd5d4a5bf60fac4919d7bb3c61cf7cf6b66ec583a5e17ed161fab5f2e52c1ebb965facb431a427cb46c2e71fd2f5de1dcc63374c3cc761c6b6716b6b912c91813c98a532b2727bedf4272816553ada29d326d397ec090edcf1f0145ce7954";
 }
 
 // Encrypt the secrets as defined in requestConfig
@@ -350,34 +218,6 @@ const checkTokenGistScope = async githubApiToken => {
   }
 
   return true;
-};
-
-// code from ./tasks/utils
-const deleteGist = async (githubApiToken, gistURL) => {
-  const headers = {
-    Authorization: `Bearer ${githubApiToken}`,
-  };
-
-  const gistId = gistURL.match(/\/([a-fA-F0-9]+)$/)[1];
-
-  try {
-    const response = await axios.delete(
-      `https://api.github.com/gists/${gistId}`,
-      { headers }
-    );
-
-    if (response.status !== 204) {
-      throw new Error(
-        `Failed to delete Gist: ${response.status} ${response.statusText}`
-      );
-    }
-
-    console.log(`Off-chain secrets Gist ${gistURL} deleted successfully`);
-    return true;
-  } catch (error) {
-    console.error(`Error deleting Gist ${gistURL}`, error.response);
-    return false;
-  }
 };
 
 function isObject(value) {

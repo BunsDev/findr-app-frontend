@@ -10,6 +10,7 @@ import type { ExtractAbiFunctionNames } from "abitype";
 import { UseContractEventConfig, UseContractReadConfig, UseContractWriteConfig } from "wagmi";
 import contractsData from "~~/generated/deployedContracts";
 import scaffoldConfig from "~~/scaffold.config";
+import {BigNumber} from "ethers";
 
 export type GenericContractsDeclaration = {
   [key: number]: readonly {
@@ -151,6 +152,7 @@ export type UseScaffoldWriteConfig<
 > = {
   contractName: TContractName;
   value?: string;
+  gasLimit?: BigNumber;
 } & IsContractsFileMissing<
   Partial<UseContractWriteConfig> & { args?: unknown[] },
   {
