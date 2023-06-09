@@ -18,7 +18,7 @@ contract FINDR is ERC20 {
 
     //Only allow the RestaurantInfo contract as modifier to mint new FINDR tokens for rewards
     function mintReward(address account, uint256 amount) onlyRestaurantInfo public {
-        require(msg.sender == address(0x0), "Only the RestaurantInfo contract can mint FINDR tokens");
+        require(msg.sender == address(restaurantInfoContract), "Only the RestaurantInfo contract can mint FINDR tokens");
         _mint(account, amount);
     }
 

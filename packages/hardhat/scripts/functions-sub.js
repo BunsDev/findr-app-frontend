@@ -3,7 +3,7 @@ async function main() {
   const linkAmount = "1";
   // Set your consumer contract address. This contract will
   // be added as an approved consumer of the subscription.
-  const consumer = "0x553C15A89aeB762B0F427a3db33bA9B5eCeC56dd";
+  const consumer = "0x33CA2125A153861795Ed6AeBd68D1E05fDbb8d00";
 
   // Network-specific configs
   // Polygon Mumbai LINK 0x326C977E6efc84E512bB9C30f76E30c160eD06FB

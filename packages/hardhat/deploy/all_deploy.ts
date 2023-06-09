@@ -18,7 +18,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
 
   const restaurantInfoContract: DeployResult = await deploy("RestaurantInfo", {
     from: deployer,
-    args: [ORACLE, "0x71987e033b2b713a0cbd11f818d1462fe6cbac41d83d70b9a6b81a2fe3a6f9cf"],
+    args: [ORACLE, "0x6f1341ba96ca58f5c667cafb5e0d6ddf1c33f149ae50c5ec47205b2d0386e325"],
     log: true,
     autoMine: true,
   });

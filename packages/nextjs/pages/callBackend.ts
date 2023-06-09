@@ -9,25 +9,21 @@ interface RestaurantInfo {
   stake?: BigNumber;
   reviews: Review[];
 }
-export const getReviewsForARestaurant = async (restaurantInfo: RestaurantInfo): Promise<Review[]> => {
+export const getReviewsForARestaurant = async (restaurantInfo: RestaurantInfo, reviewHashes: string[]): Promise<Review[]> => {
+  console.log("getReviewsForARestaurant Called for restaurant ID", restaurantInfo);
   // Replace this URL with your RPC endpoint
-  const url = "http://localhost:8000//v1/reviews-from-hashes";
-
-  // Replace this with the appropriate RPC request body
-  const body = {
-    restaurantId: restaurantInfo.id,
-  };
-
+  const url = `http://localhost:8080/v1/reviews-from-hashes/${restaurantInfo.id}`;
+  console.log("Review hashes to fetch", reviewHashes);
   try {
     const response = await fetch(url, {
-      method: "GET",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(reviewHashes),
     });
-
     const responseData = await response.json();
+    console.log("Response for get Reviews for a restaurant", responseData);
 
     return responseData;
   } catch (err) {
@@ -37,7 +33,7 @@ export const getReviewsForARestaurant = async (restaurantInfo: RestaurantInfo): 
 };
 
 export const submitReviewBackend = async (reviewHash, reviewContent, ownerInfo, restaurantId) => {
-  const url = "http://localhost:8000/v1/review-submit";
+  const url = "http://localhost:8080/v1/review-submit";
 
   // Replace this with the appropriate RPC request body
   const body = {

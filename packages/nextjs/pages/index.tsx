@@ -8,9 +8,15 @@ import fs from "fs/promises";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
-import { useDeployedContractInfo, useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import {
+  useDeployedContractInfo,
+  useScaffoldContractRead,
+  useScaffoldContractWrite,
+  useScaffoldEventSubscriber,
+} from "~~/hooks/scaffold-eth";
 import { getReviewsForARestaurant, submitReviewBackend } from "~~/pages/callBackend";
 import { CustomRestaurantMarker } from "~~/pages/maps_marker";
+import Popup from "~~/pages/popUpAfterChainLinkJudgement";
 import RestaurantReviews, { Review } from "~~/pages/reviewCard";
 
 import TextSearchRequest = google.maps.places.TextSearchRequest;
@@ -19,7 +25,7 @@ import PlaceResult = google.maps.places.PlaceResult;
 export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   //Google maps API
   const [click, setClick] = React.useState<google.maps.LatLng>();
-  const [zoom, setZoom] = React.useState(15); // initial zoom
+  const [zoom, setZoom] = React.useState(19); // initial zoom
   const [selectedRestaurant, setSelectedRestaurant] = useState("");
   const [center, setCenter] = React.useState<google.maps.LatLngLiteral>({
     lat: 48.139266234120626,
@@ -84,15 +90,16 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     setCenter(m.getCenter()!.toJSON());
   };
 
-  //Contract interaction code
   const { address } = useAccount();
   const [newReview, setNewReview] = useState("");
+  const [stakeAmount, setStakeAmount] = useState("1");
   const [showInfo, setShowInfo] = useState(true); // state to show or hide info box
   const [showReview, setShowReview] = useState(false); // state to show or hide the longer review
+  const [canShowReviewAIJudgement, setCanShowReviewAIJudgement] = useState(false); // state to show or hide the longer review
+  const [reviewAIJudgementInfo, setReviewAIJudgementInfo] = useState(""); // state to show or hide the longer review
 
   const coreContractData = useDeployedContractInfo("RestaurantInfo");
 
-  //TODO: Felipe. Add a popup to ask how much to stake when the user clicks on stake
   //Give permission to the contract to get allowance from the user
   const { writeAsync: getTokenApproval } = useScaffoldContractWrite({
     contractName: "FINDR",
@@ -101,26 +108,43 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     value: "0",
   });
 
+  function getHash(input: string) {
+    let hash = 0;
+    const len = input.length;
+    for (let i = 0; i < len; i++) {
+      hash = (hash << 5) - hash + input.charCodeAt(i);
+      hash |= 0; // to 32bit integer
+    }
+    console.log("Hash of Gmaps restaurant Id", Math.abs(hash));
+    return Math.abs(hash);
+  }
+
   //State the allowance on the restaurant
   const { writeAsync: doStakeOnContract } = useScaffoldContractWrite({
     contractName: "RestaurantInfo",
     functionName: "stakeRestaurant",
-    args: [BigNumber.from(1), BigNumber.from(1)],
+    args: [BigNumber.from(getHash(selectedRestaurant)), BigNumber.from(Number(stakeAmount))],
     value: "0",
+  });
+
+  //Claim rewards if review is accepted
+  const { writeAsync: claimRewardsForUser } = useScaffoldContractWrite({
+    contractName: "RestaurantInfo",
+    functionName: "claimReward",
+    args: [BigNumber.from(getHash(selectedRestaurant))],
   });
 
   const encryptedSecrets =
     "0xfee42b05e49f0bb7b15782016fd202d2027e04917d7689796521ac5bf7d8be853fdb84e44052a41e9bdf3e3d80b8e2bcc8b6e2a79c74c159a73baec9fdb64c58d1c52dd5d4a5bf60fac4919d7bb3c61cf7cf6b66ec583a5e17ed161fab5f2e52c1ebb965facb431a427cb46c2e71fd2f5de1dcc63374c3cc761c6b6716b6b912c91813c98a532b2727bedf4272816553ada29d326d397ec090edcf1f0145ce7954";
   const subscriptionId = 410;
   const chainLinkRequestGasLimit = 250000;
-  console.log("AI Caller source file: " + aiCallerSourceFile);
   //State the allowance on the restaurant
   const { writeAsync: sendReviewHash } = useScaffoldContractWrite({
     contractName: "RestaurantInfo",
     functionName: "addReview",
     args: [
-      BigNumber.from(1),
-      "Some review text",
+      BigNumber.from(getHash(selectedRestaurant)),
+      newReview,
       aiCallerSourceFile,
       encryptedSecrets,
       BigNumber.from(subscriptionId),
@@ -130,27 +154,51 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     gasLimit: BigNumber.from(5500000),
   });
 
+  const { data: totalStakeOnRestaurant } = useScaffoldContractRead({
+    contractName: "RestaurantInfo",
+    functionName: "getRestaurantStakeTotal",
+    args: [BigNumber.from(getHash(selectedRestaurant))],
+  });
+
+  const { data: getClaimableReward } = useScaffoldContractRead({
+    contractName: "RestaurantInfo",
+    functionName: "getClaimableReward",
+    args: [address],
+  });
+
   const { data: newReviewHash } = useScaffoldContractRead({
     contractName: "RestaurantInfo",
     functionName: "_convertStringToBytes32Hash",
     args: [newReview],
   });
 
-  // useScaffoldEventSubscriber({
-  //   contractName: "RestaurantInfo",
-  //   eventName: "ReviewAdded",
-  //   listener: (restaurantId, reviewHash, owner) => {
-  //     console.log("Review added after processing with AI", restaurantId, reviewHash, owner);
-  //   },
-  // });
-  //
-  // useScaffoldEventSubscriber({
-  //   contractName: "RestaurantInfo",
-  //   eventName: "ReviewRejected",
-  //   listener: (restaurantId, reviewHash, owner) => {
-  //     console.log("Review rejected after processing with AI", restaurantId, reviewHash, owner);
-  //   },
-  // });
+  const { data: reviewHashesOnChain } = useScaffoldContractRead({
+    contractName: "RestaurantInfo",
+    functionName: "getRestaurantReviewHashes",
+    args: [BigNumber.from(getHash(selectedRestaurant))],
+  });
+
+  useScaffoldEventSubscriber({
+    contractName: "RestaurantInfo",
+    eventName: "ReviewAdded",
+    listener: (restaurantId, reviewHash, owner) => {
+      console.log("Review added after processing with AI", restaurantId, reviewHash, owner);
+      setCanShowReviewAIJudgement(true);
+      setReviewAIJudgementInfo(`Review added after processing with AI as reviewHash ${reviewHash}`);
+    },
+  });
+
+  useScaffoldEventSubscriber({
+    contractName: "RestaurantInfo",
+    eventName: "ReviewRejected",
+    listener: (restaurantId, reviewHash, owner) => {
+      console.log("Review rejected after processing with AI", restaurantId, reviewHash, owner);
+      setCanShowReviewAIJudgement(true);
+      setReviewAIJudgementInfo(
+        `Review rejected after processing with AI as reviewHash ${reviewHash}. Please try to be genuine`,
+      );
+    },
+  });
 
   const stakeRestaurant = async () => {
     if (selectedRestaurant === null) return;
@@ -162,8 +210,15 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     await getTokenApproval();
   };
 
+  const claimRewards = async () => {
+    if (selectedRestaurant === null) return;
+    await claimRewardsForUser();
+  };
+
+
   const sendReview = async () => {
     // Here you can handle the review submission.
+    console.log("Sending review to backend and blockchain");
     console.log(
       JSON.stringify(
         {
@@ -220,13 +275,25 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
               <span className="text-4xl font-bold text-center mt-10">
                 Review for {restaurants.find(r => r.id === selectedRestaurant)!.name}
               </span>
+              <span className="text-2xl font-bold text-center mt-10">Staked FINDR: {totalStakeOnRestaurant?.toNumber()}</span>
 
+              <input placeholder="Stake amount" value={stakeAmount} onChange={e => setStakeAmount(e.target.value)} />
               <button className="btn btn-primary mt-5" style={{ width: "150px" }} onClick={stakeRestaurant}>
                 Stake Restaurant
               </button>
-              <button className="btn btn-primary mt-5" style={{ width: "150px" }} onClick={getAllowanceForStaking}>
-                Give allowance
-              </button>
+              <div
+                style={{
+                  display: "flex",
+                }}
+              >
+                <button className="btn btn-primary mt-5" style={{ width: "150px" }} onClick={getAllowanceForStaking}>
+                  Give allowance
+                </button>
+                <button className="btn btn-primary mt-5" style={{ width: "100px" }} onClick={claimRewards}>
+                  Claim rewards {getClaimableReward?.toNumber()}
+                </button>
+              </div>
+
               <div className="flex flex-col mt-6 px-7 py-8 bg-base-200 opacity-80 rounded-2xl ">
                 <textarea
                   placeholder="Write your review here"
@@ -243,7 +310,13 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
               </div>
             </div>
           )}
-
+          {canShowReviewAIJudgement && (
+            <Popup
+              canShowReviewAIJudgement={canShowReviewAIJudgement}
+              reviewAIJudgement={reviewAIJudgementInfo}
+              onClose={() => setCanShowReviewAIJudgement(false)}
+            />
+          )}
           {selectedRestaurant && (
             <div className="flex flex-col mt-6 px-7 py-8 bg-base-200 opacity-80 rounded-2xl shadow-lg">
               <button className="btn btn-primary" onClick={toggleReview}>
@@ -252,27 +325,7 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
               {showReview && (
                 <RestaurantReviews
                   restaurant={restaurants.find(r => r.id === selectedRestaurant)}
-                  reviews={
-                    getReviewsForARestaurant(restaurants.find(r => r.id === selectedRestaurant))
-                    // //Create a list of sample reviews
-                    // [
-                    //   {
-                    //     id: "1",
-                    //     reviewer: "0x1234567890123456789012345678901234567890",
-                    //     text: "This is a sample review",
-                    //   },
-                    //   {
-                    //     id: "1",
-                    //     reviewer: "0x1234567890123456789012345678901234567890",
-                    //     text: "This is a sample review",
-                    //   },
-                    //   {
-                    //     id: "1",
-                    //     reviewer: "0x1234567890123456789012345678901234567890",
-                    //     text: "This is a sample review",
-                    //   },
-                    // ]
-                  }
+                  reviewHashes={reviewHashesOnChain}
                 ></RestaurantReviews>
               )}
             </div>
@@ -298,6 +351,7 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
                   callback={id => {
                     console.log("id:", id);
                     setSelectedRestaurant(id);
+                    setShowReview(false);
                   }}
                 />
               ))}

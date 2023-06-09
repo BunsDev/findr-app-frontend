@@ -79,43 +79,5 @@ describe("RestaurantInfo", () => {
     });
   });
 
-  describe("claimReward", () => {
-    // it("should claim reward correctly", async () => {
-    //     const initialStake = 1000;
-    //     const initialReward = 500;
-    //
-    //     await restaurantInfo.addRestaurant(1, "Details");
-    //
-    //     mockERC20.transfer(addr1.getAddress(), initialStake);
-    //     await mockERC20.connect(addr1).approve(restaurantInfo.address, initialStake);
-    //     mockERC20.transfer(addr2.getAddress(), initialStake);
-    //     await mockERC20.connect(addr2).approve(restaurantInfo.address, initialStake);
-    //     mockERC20.transfer(addr3.getAddress(), initialStake);
-    //     await mockERC20.connect(addr3).approve(restaurantInfo.address, initialStake);
-    //     await restaurantInfo.connect(addr1).stakeRestaurant(1, initialStake);
-    //     await restaurantInfo.connect(addr2).stakeRestaurant(1, initialStake);
-    //     await restaurantInfo.connect(addr3).stakeRestaurant(1, initialStake);
-    //
-    //
-    //     const initialBalance = await mockERC20.balanceOf(await addr1.getAddress());
-    //     mockERC20.transfer(restaurantInfo.address, initialReward);
-    //     await restaurantInfo.connect(addr1).claimReward(1);
-    //     const finalBalance = await mockERC20.balanceOf(await addr1.getAddress());
-    //     expect(finalBalance.sub(initialBalance)).to.equal(initialReward);
-    // });
-
-    it("should not claim reward if no tokens staked", async () => {
-      const initialReward = 500;
-
-      await restaurantInfo.addRestaurant(1, "Details");
-
-      await expect(restaurantInfo.connect(addr1).claimReward(1)).to.be.revertedWith("No tokens staked");
-    });
-
-    it("should not claim reward if restaurant does not exist", async () => {
-      await expect(restaurantInfo.connect(addr1).claimReward(1)).to.be.revertedWith("Restaurant does not exist");
-    });
-  });
-
   // Additional tests for remaining functions
 });

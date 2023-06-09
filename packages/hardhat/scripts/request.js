@@ -15,14 +15,14 @@ async function main() {
   const signer = new ethers.Wallet(signerPrivateKey, provider);
 
   // Consumer contract
-  const consumerAddress = "0x553C15A89aeB762B0F427a3db33bA9B5eCeC56dd";
+  const consumerAddress = "0x33CA2125A153861795Ed6AeBd68D1E05fDbb8d00";
   const consumerAbiPath = "./artifacts/contracts/RestaurantInfo.sol/RestaurantInfo.json";
 
   const contractAbi = JSON.parse(await fs.readFile(consumerAbiPath, "utf8")).abi;
   const consumerContract = new ethers.Contract(consumerAddress, contractAbi, signer);
 
   // Transaction config
-  const gasLimit = 250000; // Transaction gas limit
+  const gasLimit = 300000; // Transaction gas limit
   const verificationBlocks = 2; // Number of blocks to wait for transaction
 
   // Chainlink Functions request config
@@ -36,7 +36,8 @@ async function main() {
   // const args = ["ETH", "USD"];
 
   const source = await fs.readFile("./scripts/OpenAI-request.js", "utf8");
-  const args = ["Some review about a restaurant"];
+  const args = ["I recently had the pleasure of dining at Ganesha, and I must say, it was an extraordinary experience that exceeded all my expectations. From the moment I stepped inside, I was enveloped by an ambiance that transported me to a world of serenity and elegance. Ganesha truly offers a divine culinary experience like no other. The first thing that struck me was the attention to detail in the restaurant's decor. The beautifully crafted statues and artwork depicting Lord Ganesha created an atmosphere of tranquility and spirituality. Combined with soft lighting and comfortable seating, it made for a truly immersive dining setting. The service at Ganesha was exceptional. The staff members were warm, welcoming, and highly attentive to every need. They guided me through the menu, providing insightful recommendations and accommodating any dietary preferences I had. The level of professionalism and genuine care displayed by the servers truly made me feel valued as a guest. Now, let's talk about the food. Ganesha's menu boasts an extensive selection of traditional and contemporary dishes from various regions of India. Each dish I tried was an explosion of flavors and aromas, meticulously prepared using fresh and high-quality ingredients. From the fragrant biryanis to the succulent tandoori delicacies, every bite was a delightful journey for my taste buds.\n" +
+  "\n"];
   const secrets = { apiKey: process.env.OPENAI_API_KEY };
 
   // Tutorial 7
