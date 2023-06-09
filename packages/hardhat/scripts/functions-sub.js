@@ -1,11 +1,10 @@
-import {CONSUMER_ADDRESS, FUND_ON_SUBSCRIPTION, LINK_AMOUNT, SUBSCRIPTION_ID} from "./constants";
 
 async function main() {
   // 1 LINK is sufficient for this example
-  const linkAmount = LINK_AMOUNT;
+  const linkAmount = process.env.LINK_AMOUNT;
   // Set your consumer contract address. This contract will
   // be added as an approved consumer of the subscription.
-  const consumer = CONSUMER_ADDRESS;
+  const consumer = process.env.CONSUMER_ADDRESS;
 
   // Network-specific configs
   // Polygon Mumbai LINK 0x326C977E6efc84E512bB9C30f76E30c160eD06FB
@@ -27,7 +26,7 @@ async function main() {
   // const subscriptionId =
   //   createSubscriptionReceipt.events[0].args["subscriptionId"].toNumber();
   // console.log(`Subscription created with ID: ${subscriptionId}`);
-  const subscriptionId = SUBSCRIPTION_ID;
+  const subscriptionId = process.env.SUBSCRIPTION_ID;
 
   //Get the amount to fund, and ensure the wallet has enough funds
   const juelsAmount = ethers.utils.parseUnits(linkAmount);
@@ -42,7 +41,7 @@ async function main() {
   if (juelsAmount.gt(balance)) {
     throw Error(`Insufficent LINK balance`);
   }
-  if (FUND_ON_SUBSCRIPTION) {
+  if (process.env.FUND_ON_SUBSCRIPTION) {
     console.log(`Funding with ` + juelsAmount + ` Juels (1 LINK = 10^18 Juels)`);
     const fundTx = await linkToken.transferAndCall(
       functionsBillingRegistryProxy,

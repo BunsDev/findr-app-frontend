@@ -34,7 +34,7 @@ export const getReviewsForARestaurant = async (restaurantInfo: RestaurantInfo, r
 };
 
 export const submitReviewBackend = async (reviewHash, reviewContent, ownerInfo, restaurantId) => {
-  const url = "${BACKEND_URL}/v1/review-submit";
+  const url = `${BACKEND_URL}/v1/review-submit`;
 
   // Replace this with the appropriate RPC request body
   const body = {
