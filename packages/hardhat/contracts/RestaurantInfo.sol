@@ -153,7 +153,7 @@ contract RestaurantInfo is FunctionsClient, ConfirmedOwner{
     }
 
     function getClaimableReward(address a) public view returns(uint) {
-        return userClaimableRewards[a]/FINDRTokenAddress.decimals();
+        return userClaimableRewards[a]/10**FINDRTokenAddress.decimals();
     }
 
     //---------------------------------------ChainLink related-------------------------------------------------
