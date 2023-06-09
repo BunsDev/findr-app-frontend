@@ -53,7 +53,7 @@ Make sure this network supports ChainLink Functions.
 3. Next, create a subscription for the AI client contract. Make sure you have LINK on the deployer wallet before proceeding 
 and you are whitelisted to use the ChainLink functions.
 
-After successful subscription creation, you can modify **hardhat/scripts/contants.js** to use the subscription ID you just created.
+After successful subscription creation, you can modify **hardhat/scripts/constants.js** to use the subscription ID you just created.
 Then you can try executing the custom-chainlink-request.js script to test the AI client contract works as expected.
 
 ```
