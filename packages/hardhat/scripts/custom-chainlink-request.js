@@ -1,6 +1,6 @@
 const ethcrypto = require("eth-crypto");
 const axios = require("axios");
-const {CONSUMER_ADDRESS, CHAINlINK_REQUEST_SPECIFIC_GAS, SUBSCRIPTION_ID} = require("./constants");
+const { CONSUMER_ADDRESS, CHAINlINK_REQUEST_SPECIFIC_GAS, SUBSCRIPTION_ID } = require("./constants");
 const fs = require("fs").promises;
 
 async function main() {
