@@ -35,6 +35,13 @@ ETHERSCAN_API_KEY?
 QUICKNODE_API_KEY
 GITHUB_API_TOKEN?
 OPENAI_API_KEY?
+CMC_KEY?
+
+CONSUMER_ADDRESS
+LINK_AMOUNT
+FUND_ON_SUBSCRIPTION
+SUBSCRIPTION_ID
+CHAINlINK_REQUEST_SPECIFIC_GAS
 ```
 
 The properties with "?" are optional. You might need them for specific purposes like creating encrypted secrets, uploading gists etc
