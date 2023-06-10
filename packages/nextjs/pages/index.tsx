@@ -8,7 +8,7 @@ import fs from "fs/promises";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
-import {CHAINlINK_REQUEST_SPECIFIC_GAS, ENCRYPTED_SECRETS, GOOGLE_MAPS_API_KEY, SUBSCRIPTION_ID} from "~~/constants";
+import { CHAINlINK_REQUEST_SPECIFIC_GAS, ENCRYPTED_SECRETS, GOOGLE_MAPS_API_KEY, SUBSCRIPTION_ID } from "~~/constants";
 import {
   useDeployedContractInfo,
   useScaffoldContractRead,
@@ -37,9 +37,9 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
   const [zoom, setZoom] = React.useState(19); // initial zoom
   const [selectedRestaurant, setSelectedRestaurant] = useState("");
   const [center, setCenter] = React.useState<google.maps.LatLngLiteral>({
-    lat: 48.139266234120626,
-    lng: 11.566880680228167,
-  });
+    lat: 42.36413884358093,
+    lng: -71.05424212743002,
+  })
   let markerOnClick: google.maps.Marker;
 
   const [restaurants, setRestaurants] = React.useState<RestaurantInfo[]>([]);
@@ -132,11 +132,18 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     value: "0",
   });
 
+  const { writeAsync: doUnStakeOnContract } = useScaffoldContractWrite({
+    contractName: "RestaurantInfo",
+    functionName: "unstakeRestaurant",
+    args: [BigNumber.from(getIntegerHashFromGoogleMapsId(selectedRestaurant)), BigNumber.from(Number(stakeAmount))],
+    value: "0",
+  });
+
   //Claim rewards if review is accepted
   const { writeAsync: claimRewardsForUser } = useScaffoldContractWrite({
     contractName: "RestaurantInfo",
     functionName: "claimReward",
-    args: [BigNumber.from(getIntegerHashFromGoogleMapsId(selectedRestaurant))],
+    args: [],
   });
 
   //State the allowance on the restaurant
@@ -207,6 +214,11 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
     await doStakeOnContract();
   };
 
+  const unStakeRestaurant = async () => {
+    if (selectedRestaurant === null) return;
+    await doUnStakeOnContract();
+  };
+
   const getAllowanceForStaking = async () => {
     if (selectedRestaurant === null) return;
     await getTokenApproval();
@@ -252,8 +264,16 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
       <div className="flex bg-base-300 relative pb-10">
         <div className="w-1/2 px-5 flex flex-col">
           <h1 className="text-4xl font-bold text-center mt-10">FINDR</h1>
-          <Address address={address} />
-
+          <div
+            style={{
+              display: "flex",
+            }}
+          >
+            <Address address={address} />
+            <button className="btn btn-primary mt-5" style={{ width: "100px" }} onClick={claimRewards}>
+              Claim rewards {getClaimableReward?.toNumber()}
+            </button>
+          </div>
           {showInfo && (
             <div className="mt-10 flex gap-2 max-w-2xl">
               <div className="flex gap-5 bg-base-200 bg-opacity-80 z-0 p-7 rounded-2xl shadow-lg">
@@ -284,6 +304,9 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
               <button className="btn btn-primary mt-5" style={{ width: "150px" }} onClick={stakeRestaurant}>
                 Stake Restaurant
               </button>
+              <button className="btn btn-primary mt-5" style={{ width: "150px" }} onClick={doUnStakeOnContract}>
+                Unstake Restaurant
+              </button>
               <div
                 style={{
                   display: "flex",
@@ -291,9 +314,6 @@ export default function Home({ aiCallerSourceFile }: InferGetServerSidePropsType
               >
                 <button className="btn btn-primary mt-5" style={{ width: "150px" }} onClick={getAllowanceForStaking}>
                   Give allowance
-                </button>
-                <button className="btn btn-primary mt-5" style={{ width: "100px" }} onClick={claimRewards}>
-                  Claim rewards {getClaimableReward?.toNumber()}
                 </button>
               </div>
 
@@ -375,10 +395,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
   //   "Loading AI caller source file at",
   //   process.cwd() + "/staticfiles/chainlink/OpenAI-request.js",
   // );
-  const aiCallerSourceFile = await fs.readFile(
-    process.cwd() + "/staticfiles/chainlink/OpenAI-request.js",
-    "utf8",
-  );
+  const aiCallerSourceFile = await fs.readFile(process.cwd() + "/staticfiles/chainlink/OpenAI-request.js", "utf8");
   return {
     props: {
       aiCallerSourceFile: aiCallerSourceFile,

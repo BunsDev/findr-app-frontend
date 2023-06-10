@@ -693,7 +693,7 @@ const contracts = {
       chainId: "11155111",
       contracts: {
         FINDR: {
-          address: "0x312D1c6343c6748Ef7b31198CBe3037Cd466942F",
+          address: "0x14646769f1234F853845650F77d774f5ecB409dA",
           abi: [
             {
               inputs: [
@@ -1015,7 +1015,7 @@ const contracts = {
           ],
         },
         RestaurantInfo: {
-          address: "0xdA7bed113cB1c29eFBe230aE2cb5b2aE95420fa2",
+          address: "0xBC1AFcE3c7348B3023ae3046E5dcf91c435feC38",
           abi: [
             {
               inputs: [
@@ -1361,13 +1361,7 @@ const contracts = {
               type: "function",
             },
             {
-              inputs: [
-                {
-                  internalType: "uint256",
-                  name: "_restaurantId",
-                  type: "uint256",
-                },
-              ],
+              inputs: [],
               name: "claimReward",
               outputs: [],
               stateMutability: "nonpayable",
